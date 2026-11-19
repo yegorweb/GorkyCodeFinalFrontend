@@ -24,14 +24,7 @@ export default defineNuxtConfig({
     }
   },
 
-  robots: {
-    groups: [
-      { 
-        userAgent: '*', 
-        allow: '/'
-      },
-    ]
-  },
+  site: { indexable: false },
 
   features: {
     inlineStyles: false
