@@ -41,6 +41,19 @@ export default defineNuxtConfig({
     defaultImport: 'skipsvgo',
   },
 
+  fonts: {
+    defaults: {
+      preload: true,
+    },
+    families: [
+      {
+        name: 'Google Sans',
+        provider: 'google',
+        global: true,
+      },
+    ],
+  },
+
   devServer: {
     port: Number(import.meta.env.NUXT_DEV_PORT || 3000)
   },
