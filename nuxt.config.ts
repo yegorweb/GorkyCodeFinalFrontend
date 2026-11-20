@@ -51,6 +51,10 @@ export default defineNuxtConfig({
         provider: 'google',
         global: true,
       },
+      {
+        name: 'Unbounded',
+        provider: 'google',
+      },
     ],
   },
 
