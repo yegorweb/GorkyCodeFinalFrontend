@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const model = defineModel<string | Extract<StoreResponse<any>, { ok: false }>>()
-const message = model.value ? typeof model.value === 'string' ? model.value : generateErrorMessage(model.value) : 'Ошибка'
+const message = computed(() => model.value ? typeof model.value === 'string' ? model.value : generateErrorMessage(model.value) : 'Ошибка')
 </script>
 
 <template>
@@ -10,6 +10,6 @@ const message = model.value ? typeof model.value === 'string' ? model.value : ge
 <style lang="postcss" scoped>
 .error {
   font-size: 16px;
-  color: red;
+  color: rgb(var(--v-theme-error));
 }
 </style>
