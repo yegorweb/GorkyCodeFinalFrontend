@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  title: GorkyCodeFinal backend
+  version: 0.2.0
+  description: Teacher API for batches, student submissions and asynchronous grading results.
+servers:
+  - url: /
+paths:
+  /health:
+    get:
+      responses:
+        '200': { description: HTTP server is running }
+  /ready:
+    get:
+      responses:
+        '200': { description: PostgreSQL, Redis and object storage are available }
+        '503': { description: Dependency unavailable }
+  /api/v1/auth/login:
+    post:
+      summary: Teacher login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Session created and teacher_session cookie set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { description: Invalid request }
+        '401': { description: Invalid credentials }
+  /api/v1/auth/me:
+    get:
+      security: [{ teacherSession: [] }]
+      responses:
+        '200':
+          description: Authenticated teacher
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { description: Unauthorized }
+  /api/v1/auth/logout:
+    post:
+      responses:
+        '204': { description: Session ended }
+  /api/v1/batches:
+    post:
+      summary: Create a grading batch
+      security: [{ teacherSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBatchRequest' }
+      responses:
+        '201':
+          description: Batch created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Batch' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/batches/{batchId}/pages:
+    post:
+      summary: Store one page and create or return the student's task in this batch
+      security: [{ teacherSession: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BatchId' }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+          description: Must equal capture_id in the multipart body.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/UploadPageRequest' }
+      responses:
+        '202':
+          description: Page durably stored; task_id groups pages by the supplied pseudonymous student_id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageReceipt' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { description: Image exceeds configured limit }
+        '415': { description: Unsupported image media type }
+  /api/v1/batches/{batchId}/close:
+    post:
+      summary: Close intake and queue only submissions with all expected pages
+      security: [{ teacherSession: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BatchId' }
+      responses:
+        '202':
+          description: Batch closed; complete tasks queued and incomplete tasks reported
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchCloseResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/batches/{batchId}/results:
+    get:
+      summary: Poll task status changes and completed results
+      security: [{ teacherSession: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BatchId' }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string, maxLength: 512 }
+          description: Opaque cursor from previous response.
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Changes in cursor order; clients correlate rows by task_id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/batches/{batchId}/results/ack:
+    post:
+      summary: Acknowledge results already persisted by the browser
+      security: [{ teacherSession: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BatchId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AckResultsRequest' }
+      responses:
+        '204': { description: Ack recorded; eligible batch data scheduled for cleanup }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+components:
+  securitySchemes:
+    teacherSession: { type: apiKey, in: cookie, name: teacher_session }
+  parameters:
+    BatchId:
+      name: batchId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Conflict:
+      description: State conflict or idempotency key reused with different payload
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+  schemas:
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    User:
+      type: object
+      required: [id, email]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string, format: email }
+    CreateBatchRequest:
+      type: object
+      required: [assignment_id, variant, template_id, template_version, expected_student_count, expected_page_count]
+      properties:
+        assignment_id: { type: string, minLength: 1, maxLength: 100 }
+        variant: { type: string, minLength: 1, maxLength: 20 }
+        template_id: { type: string, minLength: 1, maxLength: 100, description: Printed Test Studio template ID encoded in the QR; not the scanner geometry ID. }
+        template_version: { type: integer, minimum: 1, description: Numeric printed Test Studio revision; scanner geometry version is local to the browser. }
+        expected_student_count: { type: integer, minimum: 1, maximum: 1000 }
+        expected_page_count: { type: integer, minimum: 1, maximum: 100 }
+    Batch:
+      type: object
+      required: [batch_id, status, created_at]
+      properties:
+        batch_id: { type: string, format: uuid }
+        status: { type: string, enum: [OPEN, CLOSED, PROCESSING, COMPLETED, CLOSED_INCOMPLETE, CLEANING, CLEANED] }
+        created_at: { type: string, format: date-time }
+    UploadPageRequest:
+      type: object
+      required: [image, capture_id, student_id, display_name, page_id, page_number, template_id, template_version]
+      properties:
+        image: { type: string, format: binary }
+        capture_id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid, description: Browser-generated pseudonymous ID confirmed for this student within the batch. }
+        display_name: { type: string, minLength: 1, maxLength: 200, description: Preparation service output confirmed by the teacher. }
+        page_id: { type: string, format: uuid }
+        page_number: { type: integer, minimum: 1 }
+        template_id: { type: string, minLength: 1, maxLength: 100, description: Printed Test Studio template ID for this batch. }
+        template_version: { type: integer, minimum: 1, description: Numeric printed Test Studio revision for this batch. }
+        qr_raw: { type: string, maxLength: 8192, description: "Optional exact decoded QR text. New printed QR is B1:{template_id}:{revision}:{page_number}; legacy B1:{template_id}:{page_number} denotes revision 16. The browser validates recognized QR values against this upload; unknown values may remain opaque." }
+    PageReceipt:
+      type: object
+      required: [task_id, page_id, capture_id, status, received_pages, expected_pages]
+      properties:
+        task_id: { type: string, format: uuid }
+        page_id: { type: string, format: uuid }
+        capture_id: { type: string, format: uuid }
+        status: { type: string, enum: [RECEIVING, QUEUED] }
+        received_pages: { type: integer, minimum: 1 }
+        expected_pages: { type: integer, minimum: 1 }
+    BatchCloseResult:
+      type: object
+      required: [batch_id, status, queued_tasks, incomplete_tasks, missing_student_count]
+      properties:
+        batch_id: { type: string, format: uuid }
+        status: { type: string, enum: [CLOSED, CLOSED_INCOMPLETE, PROCESSING] }
+        queued_tasks: { type: integer, minimum: 0 }
+        missing_student_count: { type: integer, minimum: 0, description: Expected students without any submitted page. A positive value requires explicit teacher acknowledgement before server cleanup. }
+        incomplete_tasks:
+          type: array
+          items:
+            type: object
+            required: [task_id, missing_page_numbers]
+            properties:
+              task_id: { type: string, format: uuid }
+              missing_page_numbers: { type: array, items: { type: integer, minimum: 1 } }
+    ResultPage:
+      type: object
+      required: [items, next_cursor, has_more]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [task_id, student_id, status, updated_at]
+            properties:
+              task_id: { type: string, format: uuid }
+              student_id: { type: string, format: uuid }
+              display_name: { type: string, maxLength: 200 }
+              status: { type: string, enum: [RECEIVING, QUEUED, PROCESSING, SUCCEEDED, FAILED, INCOMPLETE] }
+              result: { type: object, additionalProperties: true }
+              error:
+                type: object
+                required: [code, message]
+                properties:
+                  code: { type: string }
+                  message: { type: string }
+                  details: { type: object, additionalProperties: true }
+              updated_at: { type: string, format: date-time }
+        next_cursor: { type: string, maxLength: 512 }
+        has_more: { type: boolean }
+    AckResultsRequest:
+      type: object
+      required: [task_ids, acknowledge_missing_students]
+      properties:
+        task_ids:
+          type: array
+          minItems: 0
+          items: { type: string, format: uuid }
+        acknowledge_missing_students: { type: boolean, description: Must be true when the closed batch reports missing_student_count greater than zero. }
