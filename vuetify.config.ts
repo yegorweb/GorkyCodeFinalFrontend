@@ -12,8 +12,16 @@ export default defineVuetifyConfiguration({
     themes: {
       light: {
         colors: {
-          primary: '#27384b',
-          accent: '#e76f51'
+          primary: '#2d8315',
+          secondary: '#bef6d3',
+          accent: '#a6ecb5',
+          surface: '#e1ede4',
+          background: '#ffffff',
+          success: '#2d8315',
+          lime: '#a6ff00',
+          border: '#d6d6d6',
+          ink: '#16231b',
+          muted: '#56635a'
         },
       }
     }
