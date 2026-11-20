@@ -1,25 +1,26 @@
 <script setup lang="ts">
-import { mdiArrowLeft } from "@mdi/js";
+import { mdiArrowLeft } from '@mdi/js'
+
+const router = useRouter()
+const auth = useAuth()
+
+const back = () => {
+  if (auth.loggedIn.value && router.options.history.state.back) {
+    router.back()
+  } else {
+    router.replace('/')
+  }
+}
 </script>
 
 <template>
-  <div style="display: flex;" class="pb-2">
-    <div 
-      @click="$router.back()" 
-      class="d-flex pt-1 pr-4 pb-1 cursor-pointer flex-row flex-nowrap align-center justify-start back"
+  <div class="d-flex">
+    <div
+      @click="back"
+      class="d-flex pt-1 pr-3 pb-1 cursor-pointer flex-row flex-nowrap align-center justify-start user-select-none"
     >
       <v-icon :icon="mdiArrowLeft" />
-      
-      <div 
-        class="text-body-4 ml-1"
-        style="font-size: 17px; font-weight: 500;"
-      >назад</div>
+      <div style="font-weight: 500;" class="ml-1">назад</div>
     </div>
   </div>
 </template>
-
-<style lang="postcss" scoped>
-.back, .back * {
-  user-select: none;
-}
-</style>
