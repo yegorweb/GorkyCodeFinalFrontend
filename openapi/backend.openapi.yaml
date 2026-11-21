@@ -1626,12 +1626,12 @@ components:
         created_at: { type: string, format: date-time }
     UploadPageRequest:
       type: object
-      required: [image, capture_id, student_id, display_name, page_id, page_number, template_id, template_version]
+      required: [image, capture_id, page_id, page_number, template_id, template_version]
       properties:
         image: { type: string, format: binary }
         capture_id: { type: string, format: uuid }
-        student_id: { type: string, format: uuid, description: Browser-generated pseudonymous ID confirmed for this student within the batch. }
-        display_name: { type: string, minLength: 1, maxLength: 200, description: Preparation service output confirmed by the teacher. }
+        student_id: { type: string, format: uuid, description: "Optional legacy grouping ID. For a standalone photograph the backend uses capture_id; no student data is required." }
+        display_name: { type: string, minLength: 1, maxLength: 200, description: "Optional legacy display label. Defaults to Работа for a standalone photograph." }
         page_id: { type: string, format: uuid }
         page_number: { type: integer, minimum: 1 }
         template_id: { type: string, minLength: 1, maxLength: 100, description: Printed Test Studio template ID for this batch. }

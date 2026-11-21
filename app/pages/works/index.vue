@@ -3,6 +3,8 @@ import { mdiPlus, mdiRefresh, mdiCameraOutline } from '@mdi/js'
 definePageMeta({ auth: true })
 useSeoMeta({ title: 'Мои работы' })
 const works = useWorks()
+const grading = useGradingResults()
+const { batches: gradingBatches, loading: gradingLoading, polling: gradingPolling, error: gradingError } = grading
 const loading = ref(true)
 const error = ref<string>()
 const busyKeys = ref<string[]>([])
@@ -44,6 +46,8 @@ onMounted(load)
     </template>
     <div v-else-if="error" class="empty-works"><v-btn :prepend-icon="mdiRefresh" :loading="loading" variant="text" @click="load">Повторить</v-btn></div>
     <div v-else class="empty-works"><h2>Работ пока нет</h2></div>
+      <ErrorMessage v-if="gradingError" v-model="gradingError" class="mt-4" role="alert" />
+      <CheckedWorksSection :batches="gradingBatches" :loading="gradingLoading" :polling="gradingPolling" />
   </v-container></main>
 </template>
 <style scoped>

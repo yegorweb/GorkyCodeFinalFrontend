@@ -36,7 +36,7 @@ async function start() {
   if (!canStart.value) return
   starting.value = true
   void sound.arm()
-  try { await session.ready; await session.resume(); await scanner.start(); if (running.value) hasStarted.value = true }
+  try { await session.ready; await scanner.start() }
   finally { starting.value = false }
 }
 async function finish() {
@@ -69,8 +69,8 @@ watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
       <v-btn color="primary" :prepend-icon="mdiPlay" :loading="starting || cameraLoading" :disabled="!canStart" @click="start">{{ scanner.state.value === 'paused' ? 'Продолжить' : 'Старт' }}</v-btn>
       <v-btn variant="outlined" :prepend-icon="mdiStop" :loading="finishing" :disabled="!canFinish" @click="finish">Завершить</v-btn>
     </div>
-    <p class="upload-status" aria-live="polite">Листов: {{ captures.length }} · Загружено: {{ uploaded }} · Отправляется: {{ pending }}<span v-if="failed"> · Не загружено: {{ failed }}</span></p>
-    <ScannerCameraView :camera="camera" :scanner="scanner" :mirror="false" />
+    <p class="upload-status" aria-live="polite">Фотографий: {{ captures.length }} · Отправлено: {{ uploaded }} · В очереди: {{ pending }}<span v-if="failed"> · Не загружено: {{ failed }}</span></p>
+    <p class="scan-hint">Каждая фотография отправляется сразу и проверяется отдельно.</p>
     <v-progress-linear v-if="pending || loading" indeterminate color="primary" />
   </v-container></main>
 </template>
@@ -80,4 +80,5 @@ h1 { margin-bottom: 24px; }
 .camera-select { max-width: 400px; margin-bottom: 16px; }
 .scan-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
 .upload-status { font-size: 14px; line-height: 1.7; margin-bottom: 16px; }
+.scan-hint { margin-bottom: 16px; color: rgb(var(--v-theme-muted)); font-size: 14px; }
 </style>

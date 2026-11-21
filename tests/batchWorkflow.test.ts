@@ -206,6 +206,20 @@ test('schema upgrade keeps v1 captures and adds batch and student stores', () =>
   assert.deepEqual([...stores].sort(), ['batches', 'captures', 'students']);
 });
 
+test('empty result responses retain the previously persisted cursor and terminal tasks', async () => {
+  const store = new Store();
+  const task = { taskId: uuid('3'), studentId: uuid('4'), displayName: 'Иванов', status: 'SUCCEEDED' as const, result: { cells: [] } };
+  await store.putBatch({ ...makeBatch(), status: 'PROCESSING', cursor: 'saved-cursor', tasks: { [task.taskId]: task }, pendingAckTaskIds: [task.taskId] });
+  const workflow = new BatchWorkflow({ store, fetcher: async input => {
+    assert.equal(new URL(String(input)).searchParams.get('cursor'), 'saved-cursor');
+    return Response.json({ items: [], next_cursor: '', has_more: false });
+  } });
+  await workflow.pollResults(batchId);
+  assert.equal((await store.getBatch(batchId))?.cursor, 'saved-cursor');
+  assert.deepEqual((await store.getBatch(batchId))?.tasks[task.taskId], task);
+  assert.deepEqual((await store.getBatch(batchId))?.pendingAckTaskIds, [task.taskId]);
+});
+
 test('missing student requires explicit acknowledgement and supports an empty ACK plus separate cleanup', async () => {
   const store = new Store(); const batch = makeBatch(); batch.expectedStudentCount = 1;
   await store.putBatch(batch);
