@@ -49,12 +49,12 @@ watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
     <BackButton /><h1>Проверка работ</h1>
     <ErrorMessage v-if="shownError" v-model="error" role="alert" class="mb-4" />
     <v-select v-if="devices.length > 1" placeholder="Камера" :model-value="selectedDeviceId" :items="devices.map((device, index) => ({ title: device.label || `Камера ${index + 1}`, value: device.deviceId }))" label="Камера" variant="outlined" density="compact" hide-details class="camera-select" :disabled="cameraLoading || finishing" @update:model-value="changeCamera" />
-    <ScannerCameraView :camera="camera" :scanner="scanner" :mirror="false" />
     <div class="scan-actions">
       <v-btn color="primary" :prepend-icon="mdiPlay" :loading="starting || cameraLoading" :disabled="running || busy || finishing || loading" @click="start">{{ scanner.state.value === 'paused' ? 'Продолжить' : 'Старт' }}</v-btn>
       <v-btn variant="outlined" :prepend-icon="mdiStop" :loading="finishing" :disabled="busy || starting || loading" @click="finish">Завершить</v-btn>
     </div>
     <p class="upload-status" aria-live="polite">Листов: {{ captures.length }} · Загружено: {{ uploaded }} · Отправляется: {{ pending }}<span v-if="failed"> · Не загружено: {{ failed }}</span></p>
+    <ScannerCameraView :camera="camera" :scanner="scanner" :mirror="false" />
     <v-progress-linear v-if="pending || loading" indeterminate color="primary" />
   </v-container></main>
 </template>
