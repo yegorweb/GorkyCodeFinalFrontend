@@ -1,9 +1,9 @@
 <script setup lang="ts">
-const props = defineProps<{ title: string; status: WorkStatus; works: Work[]; busyKey?: string; highlightId?: string }>()
-const emit = defineEmits<{ open: [work: Work]; download: [work: Work] }>()
+const props = withDefaults(defineProps<{ title: string; status: WorkStatus; works: Work[]; busyKeys?: string[]; highlightId?: string }>(), { busyKeys: () => [] })
+const emit = defineEmits<{ open: [work: Work, control?: 'open' | 'title']; download: [work: Work] }>()
 
 function openWork(work: Work) {
-  if (!props.busyKey) emit('open', work)
+  if (!props.busyKeys.includes(`title:${work.id}`)) emit('open', work, 'title')
 }
 </script>
 
@@ -19,18 +19,18 @@ function openWork(work: Work) {
       <tbody>
         <tr v-for="work in works" :key="work.id" :class="{ 'work-highlight': work.id === highlightId }">
           <td class="work-title-cell" :title="work.title" :aria-label="`Открыть «${work.title}»`"
-            :tabindex="busyKey ? -1 : 0" :aria-disabled="!!busyKey" :aria-busy="busyKey === `open:${work.id}`"
+            :tabindex="busyKeys.includes(`title:${work.id}`) ? -1 : 0" :aria-disabled="busyKeys.includes(`title:${work.id}`)" :aria-busy="busyKeys.includes(`title:${work.id}`)"
             @click="openWork(work)" @keydown.enter.prevent="openWork(work)" @keydown.space.prevent="openWork(work)"
           >
             <div class="work-title-content">
-              <v-progress-circular v-if="busyKey === `open:${work.id}`" indeterminate color="primary" size="16" width="2" />
+              <v-progress-circular v-if="busyKeys.includes(`title:${work.id}`)" indeterminate color="primary" size="16" width="2" />
               <span class="work-title">{{ work.title }}</span>
             </div>
           </td>
           <td class="work-date">{{ formatWorkDate(work.createdAt) }}</td>
           <td>
-            <WorkActions :work="work" :busy-key="busyKey"
-              @open="emit('open', $event)" @download="emit('download', $event)"
+            <WorkActions :work="work" :busy-keys="busyKeys"
+              @open="emit('open', $event, 'open')" @download="emit('download', $event)"
             />
           </td>
         </tr>
@@ -42,13 +42,13 @@ function openWork(work: Work) {
       >
         <h3>
           <v-btn variant="text" class="work-card-title" :aria-label="`Открыть «${work.title}»`"
-            :loading="busyKey === `open:${work.id}`" :disabled="!!busyKey && busyKey !== `open:${work.id}`"
-            @click="emit('open', work)"
+            :loading="busyKeys.includes(`title:${work.id}`)" :disabled="busyKeys.includes(`title:${work.id}`)"
+            @click="openWork(work)"
           >{{ work.title }}</v-btn>
         </h3>
         <p class="work-card-date">Создана: {{ formatWorkDate(work.createdAt) }}</p>
-        <WorkActions :work="work" :busy-key="busyKey"
-          @open="emit('open', $event)" @download="emit('download', $event)"
+        <WorkActions :work="work" :busy-keys="busyKeys"
+          @open="emit('open', $event, 'open')" @download="emit('download', $event)"
         />
       </v-sheet>
     </div>

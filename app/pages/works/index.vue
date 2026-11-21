@@ -5,21 +5,27 @@ useSeoMeta({ title: 'Мои работы' })
 const works = useWorks()
 const loading = ref(true)
 const error = ref<string>()
-const busyKey = ref<string>()
+const busyKeys = ref<string[]>([])
 const groups = computed(() => ([
   { status: 'ready' as const, title: 'Готово' }, { status: 'draft' as const, title: 'Черновики' },
 ]).map(group => ({ ...group, works: works.items.value.filter(work => work.status === group.status) })).filter(group => group.works.length))
 async function load() { loading.value = true; error.value = undefined; try { const res = await works.list(); if (!res.ok) error.value = generateErrorMessage(res) } finally { loading.value = false } }
-async function openWork(work: Work) {
-  if (busyKey.value) return
-  busyKey.value = `open:${work.id}`
-  try { await navigateTo({ path: '/works/view', query: { id: work.id, kind: work.kind } }) }
-  finally { busyKey.value = undefined }
+async function withLoading(key: string, action: () => Promise<void>) {
+  if (busyKeys.value.includes(key)) return
+  busyKeys.value.push(key)
+  try { await action() }
+  catch (cause) { error.value = generateErrorMessage(handleApiError(cause)) }
+  finally { busyKeys.value = busyKeys.value.filter(value => value !== key) }
 }
-async function downloadWork(work: Work) {
-  busyKey.value = `download:${work.id}`
-  try { const res = await works.pdf(work); if (!res.ok) { error.value = generateErrorMessage(res); return }; downloadBlob(res.data, `${work.title}.pdf`) }
-  finally { busyKey.value = undefined }
+function openWork(work: Work, control: 'open' | 'title' = 'open') {
+  return withLoading(`${control}:${work.id}`, async () => { await navigateTo({ path: '/works/view', query: { id: work.id, kind: work.kind } }) })
+}
+function downloadWork(work: Work) {
+  return withLoading(`download:${work.id}`, async () => {
+    const res = await works.pdf(work)
+    if (!res.ok) { error.value = generateErrorMessage(res); return }
+    downloadBlob(res.data, `${work.title}.pdf`)
+  })
 }
 onMounted(load)
 </script>
@@ -34,7 +40,7 @@ onMounted(load)
     <ErrorMessage v-if="error" v-model="error" class="mt-4" role="alert" />
     <div v-if="loading" class="mt-4"><v-progress-linear indeterminate color="primary" /><v-skeleton-loader type="table" /></div>
     <template v-else-if="works.items.value.length">
-      <WorkStatusSection v-for="group in groups" :key="group.status" :title="group.title" :status="group.status" :works="group.works" :busy-key="busyKey" @open="openWork" @download="downloadWork" />
+      <WorkStatusSection v-for="group in groups" :key="group.status" :title="group.title" :status="group.status" :works="group.works" :busy-keys="busyKeys" @open="openWork" @download="downloadWork" />
     </template>
     <div v-else-if="error" class="empty-works"><v-btn :prepend-icon="mdiRefresh" :loading="loading" variant="text" @click="load">Повторить</v-btn></div>
     <div v-else class="empty-works"><h2>Работ пока нет</h2></div>
