@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const props = defineProps<{ title: string; status: WorkStatus; works: Work[]; busyKey?: string; highlightId?: string }>()
-const emit = defineEmits<{ open: [work: Work]; check: [work: Work]; download: [work: Work]; results: [work: Work] }>()
+const emit = defineEmits<{ open: [work: Work]; download: [work: Work] }>()
 
 function openWork(work: Work) {
   if (!props.busyKey) emit('open', work)
@@ -30,8 +30,7 @@ function openWork(work: Work) {
           <td class="work-date">{{ formatWorkDate(work.createdAt) }}</td>
           <td>
             <WorkActions :work="work" :busy-key="busyKey"
-              @open="emit('open', $event)" @check="emit('check', $event)"
-              @download="emit('download', $event)" @results="emit('results', $event)"
+              @open="emit('open', $event)" @download="emit('download', $event)"
             />
           </td>
         </tr>
@@ -49,8 +48,7 @@ function openWork(work: Work) {
         </h3>
         <p class="work-card-date">Создана: {{ formatWorkDate(work.createdAt) }}</p>
         <WorkActions :work="work" :busy-key="busyKey"
-          @open="emit('open', $event)" @check="emit('check', $event)"
-          @download="emit('download', $event)" @results="emit('results', $event)"
+          @open="emit('open', $event)" @download="emit('download', $event)"
         />
       </v-sheet>
     </div>

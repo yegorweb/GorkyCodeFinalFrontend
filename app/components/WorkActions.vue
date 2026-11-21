@@ -1,21 +1,12 @@
 <script setup lang="ts">
-import { mdiCheckDecagramOutline, mdiDownload, mdiOpenInNew } from '@mdi/js'
+import { mdiDownload, mdiOpenInNew } from '@mdi/js'
 
 defineProps<{ work: Work; busyKey?: string }>()
-defineEmits<{ open: [work: Work]; check: [work: Work]; download: [work: Work]; results: [work: Work] }>()
+defineEmits<{ open: [work: Work]; download: [work: Work] }>()
 </script>
 
 <template>
   <div class="work-actions">
-    <v-btn
-      v-if="work.status === 'ready' && work.keyReady"
-      :prepend-icon="mdiCheckDecagramOutline"
-      :loading="busyKey === `check:${work.id}`"
-      :disabled="!!busyKey && busyKey !== `check:${work.id}`"
-      :aria-label="`Проверить работу «${work.title}»`"
-      color="secondary" class="new-work-button"
-      @click="$emit('check', work)"
-    >Проверить</v-btn>
     <v-btn
       :prepend-icon="mdiOpenInNew"
       :loading="busyKey === `open:${work.id}`"
@@ -38,7 +29,6 @@ defineEmits<{ open: [work: Work]; check: [work: Work]; download: [work: Work]; r
 
 <style scoped>
 .work-actions { display: flex; align-items: center; gap: 2px; }
-.new-work-button { letter-spacing: normal; text-transform: none; }
 .work-action {
   padding-inline: 7px;
   font-size: 14px !important;
