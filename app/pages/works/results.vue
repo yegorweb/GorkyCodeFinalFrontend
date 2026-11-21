@@ -30,7 +30,7 @@ function download() {
 </script>
 <template>
   <main><v-container class="results-container">
-    <BackButton /><h1>Результаты проверки</h1>
+    <BackButton /><h1 class="back-page-title">Результаты проверки</h1>
     <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-4" />
     <v-progress-linear v-if="loading || polling" indeterminate color="primary" />
     <p class="result-count" role="status">Работ: {{ tasks.length }} · Проверено: {{ tasks.filter(task => task.status === 'SUCCEEDED').length }}. Результаты обновляются автоматически.</p>
@@ -69,7 +69,7 @@ function download() {
 </template>
 <style scoped>
 .results-container { max-width: 1136px; padding-block: 16px 48px; }
-h1 { margin-block: 16px 24px; font-size: clamp(24px, 2.4vw, 32px); font-weight: 500; }
+h1 { margin-bottom: 24px; }
 .result-count { margin-block: 20px; }
 .result-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .student-button { padding: 0; letter-spacing: normal; text-transform: none; font-size: inherit !important; }

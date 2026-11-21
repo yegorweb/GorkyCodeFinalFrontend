@@ -34,7 +34,7 @@ onMounted(load)
 <template>
   <main><v-container class="works-container">
     <BackButton />
-    <h1 class="page-title">Мои работы</h1>
+    <h1 class="back-page-title">Мои работы</h1>
     <div class="page-actions">
       <v-btn to="/works/new" color="secondary" :prepend-icon="mdiPlus" class="new-work-button">Новая работа</v-btn>
       <v-btn to="/works/check" color="secondary" :prepend-icon="mdiCameraOutline" class="new-work-button">Проверить работы</v-btn>
@@ -52,7 +52,6 @@ onMounted(load)
 </template>
 <style scoped>
 .works-container { max-width: 1136px; padding-block: 16px 64px; }
-.page-title { margin: 12px 0; font-size: clamp(23px, 2vw, 28px); font-weight: 500; }
 .page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
 .catalog-note { color: rgb(var(--v-theme-muted)); font-size: 14px; margin-bottom: 16px; }
 .new-work-button { letter-spacing: normal; text-transform: none; }
