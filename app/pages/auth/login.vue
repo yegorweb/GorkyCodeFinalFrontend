@@ -56,7 +56,7 @@ onMounted(() => { if (auth.loggedIn.value) void navigateTo(redirectTo.value, { r
           class="d-flex flex-column justify-center align-center rounded-lg w-100 pl-6 pr-6 pt-4 pb-6"
           color="grey-lighten-5"
         >
-          <div class="text-h6 font-weight-bold">Авторизация</div>
+          <div style="font-size: 18px;" class="font-weight-bold">Авторизация</div>
     
           <v-form @submit.prevent="pressed = true; login()" class="d-flex mt-3 flex-column align-center justify-center w-100">
             <v-text-field 
