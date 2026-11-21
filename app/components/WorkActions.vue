@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { mdiDownload, mdiOpenInNew } from '@mdi/js'
 
-defineProps<{ work: Work; busyKey?: string }>()
+withDefaults(defineProps<{ work: Work; busyKeys?: string[] }>(), { busyKeys: () => [] })
 defineEmits<{ open: [work: Work]; download: [work: Work] }>()
 </script>
 
@@ -9,8 +9,8 @@ defineEmits<{ open: [work: Work]; download: [work: Work] }>()
   <div class="work-actions">
     <v-btn
       :prepend-icon="mdiOpenInNew"
-      :loading="busyKey === `open:${work.id}`"
-      :disabled="!!busyKey && busyKey !== `open:${work.id}`"
+      :loading="busyKeys.includes(`open:${work.id}`)"
+      :disabled="busyKeys.includes(`open:${work.id}`)"
       :aria-label="`Открыть работу «${work.title}»`"
       variant="text" size="small" class="work-action"
       @click="$emit('open', work)"
@@ -18,8 +18,8 @@ defineEmits<{ open: [work: Work]; download: [work: Work] }>()
     <v-btn
       v-if="work.kind === 'version'"
       :prepend-icon="mdiDownload"
-      :loading="busyKey === `download:${work.id}`"
-      :disabled="!!busyKey && busyKey !== `download:${work.id}`"
+      :loading="busyKeys.includes(`download:${work.id}`)"
+      :disabled="busyKeys.includes(`download:${work.id}`)"
       :aria-label="`Скачать бланки работы «${work.title}»`"
       variant="text" size="small" class="work-action"
       @click="$emit('download', work)"
