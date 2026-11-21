@@ -36,7 +36,7 @@ onMounted(async () => {
         <v-btn v-if="work.status === 'ready'" to="/works/check" :prepend-icon="mdiCameraOutline" color="secondary" class="new-work-button">Проверить работы</v-btn>
       </div>
       <p v-if="work.spec.instructions" class="instructions">{{ work.spec.instructions }}</p>
-      <section v-for="(task, index) in work.spec.tasks" :key="task.id" class="task-row">
+      <section v-for="(task, index) in work.spec.tasks" :key="task.id" class="task-row can-touch">
         <h2>Задание {{ index + 1 }}</h2><p class="condition">{{ task.prompt }}</p>
         <ol v-if="task.options.length"><li v-for="(option, optionIndex) in task.options" :key="optionIndex">{{ option }}</li></ol>
         <v-img v-for="image in task.images" :key="image.id" :src="`data:image/png;base64,${image.data_base64}`" :alt="image.caption" max-height="180" contain class="my-3" />
