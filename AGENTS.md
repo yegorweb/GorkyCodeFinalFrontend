@@ -17,7 +17,7 @@ npm run dev
 # Сборка
 
 ```shell
-npm run build
+npm run generate
 ```
 
 # Важные моменты
