@@ -1,4 +1,4 @@
-import { constructorTasks, draftWork, versionWork } from '../utils/constructor'
+import { catalogueWorks, constructorTasks, draftWork, versionWork } from '../utils/constructor'
 
 export const useWorks = () => {
   const auth = useAuth({ required: true })
@@ -15,7 +15,7 @@ export const useWorks = () => {
       if (!versions.ok) return versions
       if (auth.user.value?.id !== owner) return { ok: false, status: 401 }
       if (!Array.isArray(drafts.data.items) || !Array.isArray(versions.data.items)) throw new Error('Не удалось загрузить список работ.')
-      items.value = [...drafts.data.items.map(draft => draftWork(draft, owner)), ...versions.data.items.map(version => versionWork(version, owner))].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      items.value = catalogueWorks(drafts.data.items, versions.data.items, owner)
       return { ok: true, data: items.value }
     } catch (cause) { return failure(cause) }
   }

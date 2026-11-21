@@ -27,6 +27,19 @@ test('bounded queue serializes concurrent enqueues',async()=>{
  const result=await Promise.allSettled([queue.enqueue(image(),meta('a')),queue.enqueue(image(),meta('b'))]);
  assert.equal(result.filter(r=>r.status==='fulfilled').length,1);assert.equal(queue.hasCapacity(),false);queue.dispose();
 });
+test('pending photos from other sessions do not block the current camera capture', async () => {
+ const store = new Store();
+ await store.put({ metadata: { ...meta('old'), ownerId: 7, scanSessionId: 'old' }, blob: image(), status: 'failed', attempts: 1 });
+ await store.put({ metadata: { ...meta('other'), ownerId: 8, scanSessionId: 'current' }, blob: image(), status: 'failed', attempts: 1 });
+ let session = 'current';
+ const queue = new UploadQueue({ ...settings, maxItems: 1 }, { store, accepts: record => record.metadata.ownerId === 7 && record.metadata.scanSessionId === session });
+ await queue.init(); assert.equal(queue.hasCapacity(), true);
+ await queue.enqueue(image(), { ...meta('new'), ownerId: 7, scanSessionId: 'current' });
+ assert.equal(queue.hasCapacity(), false);
+ session = 'next'; await queue.refresh(); assert.equal(queue.hasCapacity(), true);
+ assert.equal(store.records.size, 3); assert.equal(store.records.get('old')?.status, 'failed');
+ queue.dispose();
+});
 test('interrupted requests recover as uncertain using existing capture ID',async()=>{
  const store=new Store();await store.put({metadata:meta('existing'),blob:image(),status:'uploading',attempts:1});
  const queue=new UploadQueue(settings,{store});await queue.init();assert.equal(queue.list()[0].status,'uncertain');

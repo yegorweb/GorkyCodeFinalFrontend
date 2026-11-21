@@ -35,22 +35,23 @@ export class ScanSession {
     this.changed()
   }
   async resume() { for (const record of await this.captures()) if (record.submissionStatus !== 'ACCEPTED') this.queue.enqueue(record.metadata.captureId) }
+  private async binding(record: CaptureRecord): Promise<{ batch: WorkflowBatch; student: StudentRecord }> {
+    const batch = await this.api.getBatch(record.batchId!)
+    const student = (await this.api.listStudents(record.batchId!)).find(student => student.studentId === record.studentId)
+    if (!batch || !student || batch.ownerId !== this.ownerId || batch.scanSessionId !== this.id) throw new Error('Не удалось восстановить отправку листа')
+    return { batch, student }
+  }
   private async assign(record: CaptureRecord, work: Work, pageNumber: number): Promise<{ batch: WorkflowBatch; student: StudentRecord }> {
-    if (record.batchId && record.studentId) {
-      const batch = await this.api.getBatch(record.batchId)
-      const student = (await this.api.listStudents(record.batchId)).find(student => student.studentId === record.studentId)
-      if (!batch || !student || batch.ownerId !== this.ownerId || batch.scanSessionId !== this.id) throw new Error('Не удалось восстановить отправку листа')
-      return { batch, student }
-    }
+    if (record.batchId && record.studentId) return this.binding(record)
     const name = record.recognizedName?.trim() || ''
     const reservations = await this.captures()
     const candidates: { batch: WorkflowBatch; student: StudentRecord }[] = []
-    if (name && work.layout!.pages.length > 1) {
-      for (const batch of await this.batches()) {
+    for (const batch of await this.batches()) {
         if (batch.status !== 'OPEN' || batch.assignmentId !== work.assignmentId) continue
         const student = (await this.api.listStudents(batch.batchId))[0]
-        if (student?.displayName === name && !reservations.some(other => other.studentId === student.studentId && other.pageNumber === pageNumber)) candidates.push({ batch, student })
-      }
+        const reserved = reservations.filter(other => other.studentId === student?.studentId)
+        if (student?.displayName === (name || 'Без имени') && !reserved.length && !Object.keys(batch.tasks).length) { candidates.unshift({ batch, student }); continue }
+        if (name && work.layout!.pages.length > 1 && student?.displayName === name && !reserved.some(other => other.pageNumber === pageNumber)) candidates.push({ batch, student })
     }
     let chosen = candidates.length === 1 ? candidates[0]! : undefined
     if (!chosen) {
@@ -70,12 +71,19 @@ export class ScanSession {
       const original = await this.store.getCapture(id)
       if (!original || original.metadata.ownerId !== this.ownerId || original.metadata.scanSessionId !== this.id) throw new Error('Скан не найден')
       if (original.submissionStatus === 'ACCEPTED') return
-      const work = scannedWork(await this.works(), original.metadata.qr.raw)
-      const pageNumber = parsePrintedBatchQr(original.metadata.qr.raw)!.pageNumber
-      const prepared = await this.api.prepareImage(id)
-      const selected = this.identityLock.then(() => this.assign(prepared, work, pageNumber))
-      this.identityLock = selected.catch(() => {})
-      const { batch, student } = await selected
+      const parsed = parsePrintedBatchQr(original.metadata.qr.raw)
+      if (!parsed) throw new Error('На листе не найден QR бланка')
+      const pageNumber = parsed.pageNumber
+      let assigned: { batch: WorkflowBatch; student: StudentRecord }
+      if (original.batchId && original.studentId) assigned = await this.binding(original)
+      else {
+        const work = scannedWork(await this.works(), original.metadata.qr.raw)
+        const prepared = await this.api.prepareImage(id)
+        const selected = this.identityLock.then(() => this.assign(prepared, work, pageNumber))
+        this.identityLock = selected.catch(() => {})
+        assigned = await selected
+      }
+      const { batch, student } = assigned
       await this.api.prepare(id, batch.batchId, pageNumber)
       await this.api.confirmPage(id, batch.batchId, student.studentId, student.displayName, pageNumber)
     } catch (cause) {

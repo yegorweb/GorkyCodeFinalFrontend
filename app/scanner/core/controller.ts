@@ -135,7 +135,7 @@ export class ScanController {
       this.state = 'tracking';
       this.resetCollection();
       resetCandidate = true;
-      this.message = 'Очередь заполнена. Дождитесь отправки или удалите сохранённые страницы';
+      this.message = 'Очередь заполнена. Дождитесь отправки листов';
       return result();
     }
 

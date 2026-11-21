@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiFileDocumentOutline, mdiDeleteOutline } from '@mdi/js'
+import { reviewedStudioTasks } from '~/utils/studio-review'
 const props = defineProps<{ workId?: string }>()
 const studio = useTestStudio({ loadExamples: false, estimate: false })
 const { exam, busy, error, jobs } = studio
@@ -18,18 +19,20 @@ let saveAttempt: { fingerprint: string; id: string } | undefined
 let publishAttempt: { revision: number; id: string } | undefined
 if (!props.workId) { exam.value.title = ''; exam.value.subject = 'Другое' }
 
-async function upload(value: File | File[] | null) {
-  const selected = Array.isArray(value) ? value[0] : value
-  if (!selected || uploading.value || saving.value) return
+async function upload() {
+  const selected = file.value
+  if (!selected || uploading.value || saving.value || loading.value || mathLoading.value) return
   uploading.value = true
   error.value = undefined
   try {
     studio.sourcePages.value = []; studio.sourceText.value = ''; studio.review.value = undefined
     await studio.importSources([selected])
-    if (!studio.review.value) return
-    const importedFigures = studio.review.value.figures.map(figure => ({ ...figure }))
-    studio.applyReview()
-    if (studio.review.value) return
+    const review = studio.review.value as StudioReview | undefined
+    if (!review) return
+    const importedFigures = review.figures.map(figure => ({ ...figure }))
+    const next = { ...exam.value, tasks: reviewedStudioTasks(review), instructions: review.instructions }
+    validateStudioExam({ ...next, title: next.title.trim() || 'Новая работа' })
+    exam.value = next; studio.review.value = undefined; studio.reviewOpen.value = false
     figures.value = importedFigures
     submitted.value = false
   } catch (cause) { error.value = generateErrorMessage(handleApiError(cause)) }
@@ -40,6 +43,11 @@ function assignFigure(figure: StudioReviewFigure, taskId: string) {
   const task = exam.value.tasks.find(task => task.id === taskId)
   if (task) (task.images ??= []).push({ id: figure.id, data_base64: figure.data_base64, caption: figure.caption })
   figure.taskId = taskId
+}
+function removeTask(index: number) {
+  const id = exam.value.tasks[index]?.id
+  studio.removeTask(index)
+  for (const figure of figures.value) if (figure.taskId === id) figure.taskId = ''
 }
 async function save() {
   if (saving.value || uploading.value || loading.value || mathLoading.value) return
@@ -81,14 +89,15 @@ onMounted(async () => {
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-5" />
     <template v-else>
       <v-text-field v-model="exam.title" label="Тема" variant="outlined" maxlength="180" :disabled="saving || uploading" :error-messages="submitted && !exam.title.trim() ? 'Введите тему' : ''" />
-      <v-file-input v-model="file" label="Файл с заданиями" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,.txt,.docx" :prepend-icon="mdiFileDocumentOutline" variant="outlined" :loading="uploading" :disabled="saving || uploading || !exam.title.trim()" @update:model-value="upload" />
+      <v-file-input v-model="file" label="Файл с заданиями" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,.txt,.docx" prepend-icon="" :prepend-inner-icon="mdiFileDocumentOutline" variant="outlined" :loading="uploading" :disabled="saving || uploading || mathLoading" />
+      <v-btn type="button" color="primary" :loading="uploading" :disabled="!file || saving || mathLoading" class="mb-4" @click="upload()">Отправить</v-btn>
       <p v-if="uploading || mathLoading" class="progress-text" role="status">Распознаём задания…</p>
       <v-progress-linear v-if="uploading || mathLoading" indeterminate color="primary" class="mb-5" />
       <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-5" />
       <template v-if="exam.tasks.length">
         <p v-if="exam.instructions" class="instructions">{{ exam.instructions }}</p>
         <div v-for="(task, index) in exam.tasks" :key="task.id" class="task-row">
-          <div class="task-heading"><h2>Задание {{ index + 1 }}</h2><v-btn :icon="mdiDeleteOutline" variant="text" size="small" :disabled="saving" aria-label="Удалить задание" @click="studio.removeTask(index)" /></div>
+          <div class="task-heading"><h2>Задание {{ index + 1 }}</h2><v-btn :icon="mdiDeleteOutline" variant="text" size="small" :disabled="saving" aria-label="Удалить задание" @click="removeTask(index)" /></div>
           <v-textarea v-model="task.prompt" label="Условие" variant="outlined" rows="3" auto-grow :disabled="saving || uploading" maxlength="20000" hide-details="auto" />
           <ol v-if="task.options.length" class="task-options"><li v-for="(option, optionIndex) in task.options" :key="optionIndex">{{ option }}</li></ol>
           <v-img v-for="image in task.images" :key="image.id" :src="`data:image/png;base64,${image.data_base64}`" :alt="image.caption" max-height="160" contain class="mt-3" />

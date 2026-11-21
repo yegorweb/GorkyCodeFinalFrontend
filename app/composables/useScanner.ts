@@ -4,6 +4,7 @@ import { UploadQueue, type CaptureRecord, type UploadSettings } from '../scanner
 import { createVisionClient, REFERENCE_TEMPLATE, type VisionClient } from '../scanner/vision/client';
 import type { Analysis, SheetTemplate, QrPayload } from '../scanner/vision/types';
 import type { CameraHandle } from './useCamera';
+import { readScannerLatch, writeScannerLatch } from '../scanner/core/latch';
 
 interface ScannerOptions {
   settings: () => UploadSettings;
@@ -12,8 +13,6 @@ interface ScannerOptions {
   onCapture?: (record: CaptureRecord) => void;
 }
 const LATCH_KEY = 'proveryator-scanner:page-latched';
-const getLatch = (key: string) => { try { return sessionStorage.getItem(key) === '1'; } catch { return true; } };
-const setLatch = (key: string, value: boolean) => { try { sessionStorage.setItem(key, value ? '1' : '0'); } catch { /* physical latch remains in memory */ } };
 
 export function useScanner(camera: CameraHandle, options: ScannerOptions) {
   const controller = new ScanController();
@@ -67,7 +66,7 @@ export function useScanner(camera: CameraHandle, options: ScannerOptions) {
       const decision = controller.update({ ...current, frameId: ++frameNumber }, performance.now(), queue.hasCapacity());
       sync();
       if (decision.resetCandidate) releaseCandidate();
-      if (decision.state === 'seeking' && decision.resetCandidate) { setLatch(options.latchKey?.() ?? LATCH_KEY, false); qr.value = null; qrIssue.value = ''; }
+      if (decision.state === 'seeking' && decision.resetCandidate) { writeScannerLatch(options.latchKey?.() ?? LATCH_KEY, false); qr.value = null; qrIssue.value = ''; }
       if (decision.collect && (!best || current.quality.score > best.quality.score)) {
         releaseCandidate(); best = current; current = null;
       }
@@ -83,7 +82,7 @@ export function useScanner(camera: CameraHandle, options: ScannerOptions) {
           templateVersion: template.value.version, capturedAt: new Date().toISOString(), quality: chosen.quality, ...options.captureContext?.() };
         const record = await queue.enqueue(capture.blob, metadata);
         options.onCapture?.(record);
-        setLatch(options.latchKey?.() ?? LATCH_KEY, true);
+        writeScannerLatch(options.latchKey?.() ?? LATCH_KEY, true);
         if (token === generation && mounted) { controller.completeCapture(); sync(); }
       }
     } catch (err) {
@@ -104,7 +103,7 @@ export function useScanner(camera: CameraHandle, options: ScannerOptions) {
       await ready; await queue.updateSettings(options.settings()); await queue.refresh();
       if (!camera.stream.value && !await camera.requestAccess()) { error.value = camera.error.value; return; }
       running.value = true; releaseCandidate();
-      const token = ++generation; controller.start(getLatch(options.latchKey?.() ?? LATCH_KEY) || requireClearNextStart); requireClearNextStart = false; sync(); void tick(token);
+      const token = ++generation; controller.start(readScannerLatch(options.latchKey?.() ?? LATCH_KEY) || requireClearNextStart); requireClearNextStart = false; sync(); void tick(token);
     } catch (err) { error.value = err instanceof Error ? err.message : String(err); }
   }
   function pause() {

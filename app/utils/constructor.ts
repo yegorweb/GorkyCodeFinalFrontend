@@ -19,6 +19,17 @@ export function draftWork(draft: ConstructorDraft, ownerId: number): Work {
     familyId: draft.family_id, keyReady: false, createdAt: draft.created_at, updatedAt: draft.updated_at, spec: constructorExam(draft.exam, draft.tasks) }
 }
 
+export function catalogueWorks(drafts: ConstructorDraft[], versions: ConstructorVersion[], ownerId: number): Work[] {
+  const latest = new Map<string, ConstructorVersion>()
+  for (const version of [...versions].sort((a, b) => b.created_at.localeCompare(a.created_at))) {
+    const prior = latest.get(version.draft_id)
+    if (!prior || (!prior.key_ready && version.key_ready)) latest.set(version.draft_id, version)
+  }
+  const pending = drafts.filter(draft => latest.get(draft.id)?.draft_revision !== draft.revision)
+  return [...pending.map(draft => draftWork(draft, ownerId)), ...[...latest.values()].map(version => versionWork(version, ownerId))]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
 export function versionWork(version: ConstructorVersion, ownerId: number): Work {
   const layout = version.layout as unknown as StudioLayout
   if (!layout || !Array.isArray(layout.pages) || !layout.template_id || !version.id) throw new Error('API вернул некорректную версию бланка.')

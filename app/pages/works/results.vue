@@ -17,6 +17,7 @@ const confirmed = computed(() => batches.value.length > 0 && batches.value.every
 const failedCaptures = computed(() => captures.value.filter(record => record.submissionStatus !== 'ACCEPTED'))
 async function poll() {
   if (polling.value || disposed) return
+  clearTimeout(timer)
   polling.value = true
   try { await session.poll() }
   finally { polling.value = false; if (!disposed && !complete.value && batches.value.some(batch => batch.status !== 'OPEN')) timer = setTimeout(() => { void poll() }, 2500) }

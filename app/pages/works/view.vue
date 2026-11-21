@@ -31,9 +31,9 @@ onMounted(async () => {
     <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-4" />
     <template v-if="work">
       <div class="actions">
-        <v-btn :to="{ path: '/works/new', query: { id: work.draftId } }" :prepend-icon="mdiPencilOutline" variant="outlined">Редактировать</v-btn>
-        <v-btn v-if="work.kind === 'version'" :prepend-icon="mdiDownload" color="secondary" :loading="downloading" @click="download">Скачать бланк</v-btn>
-        <v-btn v-if="work.status === 'ready'" to="/works/check" :prepend-icon="mdiCameraOutline" color="primary">Проверить работы</v-btn>
+        <v-btn :to="{ path: '/works/new', query: { id: work.draftId } }" :prepend-icon="mdiPencilOutline" color="secondary" class="new-work-button">Редактировать</v-btn>
+        <v-btn v-if="work.kind === 'version'" :prepend-icon="mdiDownload" color="secondary" class="new-work-button" :loading="downloading" @click="download">Скачать бланк</v-btn>
+        <v-btn v-if="work.status === 'ready'" to="/works/check" :prepend-icon="mdiCameraOutline" color="secondary" class="new-work-button">Проверить работы</v-btn>
       </div>
       <p v-if="work.spec.instructions" class="instructions">{{ work.spec.instructions }}</p>
       <section v-for="(task, index) in work.spec.tasks" :key="task.id" class="task-row">
@@ -49,6 +49,7 @@ onMounted(async () => {
 .work-container { max-width: 1136px; padding-block: 16px 48px; }
 h1 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 500; margin-block: 16px 24px; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.new-work-button { letter-spacing: normal; text-transform: none; }
 .task-row { max-width: 820px; padding-block: 20px; border-bottom: 1px solid rgb(var(--v-theme-border)); }
 h2 { font-size: clamp(18px, 2vw, 22px); font-weight: 500; margin-bottom: 12px; }
 .instructions, .condition { white-space: pre-wrap; line-height: 1.6; }

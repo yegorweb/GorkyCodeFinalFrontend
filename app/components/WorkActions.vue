@@ -13,7 +13,7 @@ defineEmits<{ open: [work: Work]; check: [work: Work]; download: [work: Work]; r
       :loading="busyKey === `check:${work.id}`"
       :disabled="!!busyKey && busyKey !== `check:${work.id}`"
       :aria-label="`Проверить работу «${work.title}»`"
-      variant="text" size="small" class="work-action"
+      color="secondary" class="new-work-button"
       @click="$emit('check', work)"
     >Проверить</v-btn>
     <v-btn
@@ -38,6 +38,7 @@ defineEmits<{ open: [work: Work]; check: [work: Work]; download: [work: Work]; r
 
 <style scoped>
 .work-actions { display: flex; align-items: center; gap: 2px; }
+.new-work-button { letter-spacing: normal; text-transform: none; }
 .work-action {
   padding-inline: 7px;
   font-size: 14px !important;

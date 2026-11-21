@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { constructorTasks, draftWork, versionWork } from '../app/utils/constructor'
+import { catalogueWorks, constructorTasks, draftWork, versionWork } from '../app/utils/constructor'
 import { newStudioExam, newStudioTask, printableStudioExam } from '../app/utils/studio'
 import { useConstructor } from '../app/composables/useConstructor'
 
@@ -59,4 +59,15 @@ test('constructor persistence sends revisions and stable request IDs to the real
   ])
   assert.equal((requests[1]?.options.body as ConstructorDraftInput).expected_revision, 1)
   assert.deepEqual(requests[2]?.options.body, requests[3]?.options.body)
+})
+
+test('a published key has one ready row and an unchanged server draft is not shown as a duplicate', () => {
+  const exam = spec()
+  const draft = { id: 'draft', family_id: 'family', title: exam.title, exam, tasks: constructorTasks(exam), revision: 3, created_at: '2026-11-21T00:00:00Z', updated_at: '2026-11-21T01:00:00Z' }
+  const version = { id: 'version', draft_id: 'draft', draft_revision: 3, family_id: 'family', title: exam.title, variant: '1', version_number: 2, work_id: 42, key_ready: true,
+    template_id: 'printed', revision: 18, scanner_template_id: 'reference', scanner_template_version: 1, page_count: 1, exam, tasks: constructorTasks(exam),
+    layout: { template_id: 'printed', revision: 18, pages: [{}] }, artifacts: { pdf: '', zip: '', layout: '', exam: '' }, created_at: '2026-11-21T01:00:00Z' }
+  const rows = catalogueWorks([draft], [{ ...version, id: 'old', created_at: '2026-11-21T00:00:00Z' }, version], 7)
+  assert.deepEqual(rows.map(work => [work.id, work.status]), [['version', 'ready']])
+  assert.deepEqual(new Set(catalogueWorks([{ ...draft, revision: 4 }], [version], 7).map(work => work.status)), new Set(['ready', 'draft']))
 })

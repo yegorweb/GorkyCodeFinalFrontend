@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ScanController } from '../app/scanner/core/controller.ts';
+import { readScannerLatch, writeScannerLatch } from '../app/scanner/core/latch';
 
 const q = { eligible:true, score:1, sharpness:50, contrast:50, coverage:0.7, reasons:[] };
 const full = (x=0) => ({presence:'full' as const, width:1000,height:1000,quad:[{x,y:0},{x:x+800,y:0},{x:x+800,y:1000},{x,y:1000}] as any,quality:q});
@@ -39,6 +40,15 @@ test('stop/start and pause/resume preserve captured-page latch',()=>{
  const c=new ScanController();c.start();capture(c);c.completeCapture();c.stop();
  assert.equal(c.start().state,'wait-clear');c.pause();assert.equal(c.resume().state,'wait-clear');
  assert.equal(c.update(full(),4000).capture,false);
+});
+test('a completed session does not keep a new session waiting for the previous sheet', () => {
+ const values = new Map<string, string>();
+ Object.assign(globalThis, { sessionStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } });
+ const previous = new ScanController(); previous.start(); capture(previous); previous.completeCapture();
+ writeScannerLatch('session:first', true);
+ const restored = new ScanController(); assert.equal(restored.start(readScannerLatch('session:first')).state, 'wait-clear');
+ const fresh = new ScanController(); assert.equal(fresh.start(readScannerLatch('session:second')).state, 'seeking');
+ assert.equal(capture(fresh).capture, true);
 });
 test('clock regression and duplicate frame cannot add stable samples',()=>{
  const c=new ScanController({minSamples:2});c.start();c.update({...full(),frameId:1},1000);

@@ -29,7 +29,7 @@ onMounted(load)
     <h1 class="page-title">Мои работы</h1>
     <div class="page-actions">
       <v-btn to="/works/new" color="secondary" :prepend-icon="mdiPlus" class="new-work-button">Новая работа</v-btn>
-      <v-btn to="/works/check" color="primary" :prepend-icon="mdiCameraOutline" variant="outlined">Проверить работы</v-btn>
+      <v-btn to="/works/check" color="secondary" :prepend-icon="mdiCameraOutline" class="new-work-button">Проверить работы</v-btn>
     </div>
     <ErrorMessage v-if="error" v-model="error" class="mt-4" role="alert" />
     <div v-if="loading" class="mt-4"><v-progress-linear indeterminate color="primary" /><v-skeleton-loader type="table" /></div>

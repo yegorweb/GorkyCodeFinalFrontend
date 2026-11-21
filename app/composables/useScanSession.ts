@@ -6,6 +6,7 @@ import { versionWork } from '../utils/constructor'
 
 export function useScanSession(requestedId?: string) {
   const auth = useAuth({ required: true })
+  const sessionUser = useState<User | null>('user')
   const config = useRuntimeConfig()
   const router = useRouter()
   const constructor = useConstructor()
@@ -21,12 +22,17 @@ export function useScanSession(requestedId?: string) {
   let library: { expires: number; value: Work[] } | undefined
   let libraryRequest: Promise<Work[]> | undefined
   const ownerId = auth.user.value.id
-  const api = new BatchWorkflow({ store, origin: new URL(config.public.apiBase || location.origin, location.href).href.replace(/\/$/, ''),
+  const origin = new URL(config.public.apiBase || location.origin, location.href).href.replace(/\/$/, '')
+  const api = new BatchWorkflow({ store, origin,
     preparationEndpoint: new URL(`${config.public.preparationBase.replace(/\/$/, '')}/v1/process`, location.href).href,
     fetcher: async (input, options) => {
-      const response = await fetch(input, { ...options, signal: AbortSignal.timeout(120000) })
-      if (response.status === 401) { useState<User | null>('user').value = null; void router.replace({ path: '/auth/login', query: { redirect: router.currentRoute.value.fullPath } }) }
-      return response
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 120000)
+      try {
+        const response = await fetch(input, { ...options, signal: controller.signal })
+        if (response.status === 401 && typeof input === 'string' && input.startsWith(`${origin}/api/`)) { sessionUser.value = null; void router.replace({ path: '/auth/login', query: { redirect: router.currentRoute.value.fullPath } }) }
+        return response
+      } finally { clearTimeout(timeout) }
     } })
   async function works() {
     if (library && library.expires > Date.now()) return library.value
