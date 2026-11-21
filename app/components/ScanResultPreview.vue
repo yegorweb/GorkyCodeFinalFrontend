@@ -97,5 +97,5 @@ function downloadPhoto() {
 .error-region:focus-visible { outline: 3px solid rgb(var(--v-theme-primary)); outline-offset: 3px; }
 .error-label { position: absolute; left: -2px; top: -2px; padding: 2px 6px; background: rgb(var(--v-theme-error)); color: rgb(var(--v-theme-on-error)); font-size: 12px; line-height: 1.4; }
 .error-description p + p { margin-top: 8px; }
-.photo-note { margin-top: 12px; font-size: 14px; color: rgb(var(--v-theme-muted)); }
+.photo-note { margin-top: 12px; font-size: clamp(15px, 1.3vw, 16px); color: rgb(var(--v-theme-muted)); }
 </style>

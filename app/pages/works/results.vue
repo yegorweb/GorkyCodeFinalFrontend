@@ -29,7 +29,7 @@ function download() {
 }
 </script>
 <template>
-  <main><v-container class="results-container">
+  <main><v-container class="results-container can-touch">
     <BackButton /><h1 class="back-page-title">Результаты проверки</h1>
     <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-4" />
     <v-progress-linear v-if="loading || polling" indeterminate color="primary" />
@@ -68,15 +68,16 @@ function download() {
   </v-container></main>
 </template>
 <style scoped>
-.results-container { max-width: 1136px; padding-block: 16px 48px; }
+.results-container { max-width: 1136px; padding-block: 16px 48px; font-size: clamp(16px, 1.5vw, 18px); line-height: 1.5; }
 h1 { margin-bottom: 24px; }
 .result-count { margin-block: 20px; }
 .result-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.result-table { font-size: inherit; }
 .result-table :deep(th) { font-weight: 600 !important; }
 .student-button { padding: 0; letter-spacing: normal; text-transform: none; font-size: inherit !important; }
 .task-details { padding-block: 20px !important; }
 .task-detail { padding-block: 14px; }
-.task-detail h2, .failed-heading { font-size: clamp(17px, 1.7vw, 20px); font-weight: 500; margin-bottom: 10px; }
+.task-detail h2, .failed-heading { font-size: clamp(18px, 1.8vw, 22px); font-weight: 500; margin-bottom: 10px; }
 .task-detail p + p { margin-top: 8px; }
 .failed-heading { margin-top: 32px; }
 .failed-capture { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-bottom: 1px solid rgb(var(--v-theme-border)); }
