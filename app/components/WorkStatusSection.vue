@@ -61,6 +61,7 @@ function openWork(work: Work) {
 .work-section-title { margin: 0 0 10px; font-size: clamp(19px, 1.62vw, 22px); font-weight: 500; line-height: 1.3; }
 .works-table { background: rgb(var(--v-theme-surface)); border: 1px solid rgb(var(--v-theme-border)); border-radius: 10px; }
 .works-table :deep(th), .works-table :deep(td) { height: 36px; padding: 0 16px; font-size: 14px; font-weight: 400; }
+.works-table :deep(th) { font-weight: 600 !important; }
 .works-table :deep(th:not(:last-child)), .works-table :deep(td:not(:last-child)) { border-right: 1px solid rgb(var(--v-theme-border)); }
 .name-column { width: 100%; }
 .date-column { min-width: 140px; }

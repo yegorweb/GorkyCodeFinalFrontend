@@ -76,6 +76,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer) })
 h1 { margin-bottom: 24px; }
 .result-count { margin-block: 20px; }
 .result-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.result-table :deep(th) { font-weight: 600 !important; }
 .student-button { padding: 0; letter-spacing: normal; text-transform: none; font-size: inherit !important; }
 .task-details { padding-block: 20px !important; }
 .task-detail { padding-block: 14px; }
