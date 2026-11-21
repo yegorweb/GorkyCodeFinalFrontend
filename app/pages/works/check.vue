@@ -46,7 +46,7 @@ watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
 
 <template>
   <main><v-container class="check-container">
-    <BackButton /><h1>Проверить работы</h1>
+    <BackButton /><h1 class="back-page-title">Проверить работы</h1>
     <ErrorMessage v-if="shownError" v-model="error" role="alert" class="mb-4" />
     <v-select v-if="devices.length > 1" :model-value="selectedDeviceId" :items="devices.map((device, index) => ({ title: device.label || `Камера ${index + 1}`, value: device.deviceId }))" label="Камера" variant="outlined" density="compact" hide-details class="camera-select" :disabled="cameraLoading || finishing" @update:model-value="changeCamera" />
     <ScannerCameraView :camera="camera" :scanner="scanner" :mirror="false" />
