@@ -33,7 +33,7 @@ onMounted(async () => {
       <div class="actions">
         <v-btn :to="{ path: '/works/new', query: { id: work.draftId } }" :prepend-icon="mdiPencilOutline" color="secondary" class="new-work-button">Редактировать</v-btn>
         <v-btn v-if="work.kind === 'version'" :prepend-icon="mdiDownload" color="secondary" class="new-work-button" :loading="downloading" @click="download">Скачать бланк</v-btn>
-        <v-btn v-if="work.status === 'ready'" to="/works/check" :prepend-icon="mdiCameraOutline" color="secondary" class="new-work-button">Проверить работы</v-btn>
+        <v-btn v-if="work.kind === 'version'" to="/works/check" :prepend-icon="mdiCameraOutline" color="secondary" class="new-work-button">Проверить работы</v-btn>
       </div>
       <p v-if="work.spec.instructions" class="instructions">{{ work.spec.instructions }}</p>
       <section v-for="(task, index) in work.spec.tasks" :key="task.id" class="task-row">

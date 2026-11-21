@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiPlay, mdiStop } from '@mdi/js'
+import { mdiPlay, mdiStop, mdiArrowRight } from '@mdi/js'
 
 definePageMeta({ auth: true })
 useSeoMeta({ title: 'Проверить работы' })
@@ -53,6 +53,7 @@ watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
     <div class="scan-actions">
       <v-btn color="primary" :prepend-icon="mdiPlay" :loading="starting || cameraLoading" :disabled="running || busy || finishing || loading" @click="start">{{ scanner.state.value === 'paused' ? 'Продолжить' : 'Старт' }}</v-btn>
       <v-btn variant="outlined" :prepend-icon="mdiStop" :loading="finishing" :disabled="busy || starting || loading" @click="finish">Завершить</v-btn>
+      <v-btn variant="tonal" :prepend-icon="mdiArrowRight" :disabled="finishing" @click="navigateTo({ path: '/works/results', query: { scanId: session.id.value } })">Результаты</v-btn>
     </div>
     <p class="upload-status" aria-live="polite">Фотографий: {{ captures.length }} · Отправлено: {{ uploaded }} · В очереди: {{ pending }}<span v-if="failed"> · Не загружено: {{ failed }}</span></p>
     <p class="scan-hint">Каждая фотография отправляется сразу и проверяется отдельно.</p>

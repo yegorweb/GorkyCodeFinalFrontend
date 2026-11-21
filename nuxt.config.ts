@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['vuetify-nuxt-module', 'nuxt-svgo', '@nuxt/fonts'],
 
-  css: ['~/assets/styles/main.scss'],
+  css: ['~/assets/styles/main.scss', 'katex/dist/katex.min.css'],
 
   runtimeConfig: {
     public: {

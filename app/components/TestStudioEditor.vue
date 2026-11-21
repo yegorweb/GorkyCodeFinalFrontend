@@ -10,6 +10,10 @@ const uploading = ref(false)
 const saving = ref(false)
 const loading = ref(!!props.workId)
 const submitted = ref(false)
+const uploadAttempted = ref(false)
+const alertMessage = ref('')
+const alertVisible = ref(false)
+function showAlert(message: string) { alertMessage.value = message; alertVisible.value = true }
 const currentDraft = ref<Work>()
 const draftId = props.workId ?? crypto.randomUUID()
 const figures = ref<StudioReviewFigure[]>([])
@@ -20,8 +24,11 @@ let publishAttempt: { revision: number; id: string } | undefined
 if (!props.workId) { exam.value.title = ''; exam.value.subject = 'Другое' }
 
 async function upload() {
+  if (uploading.value || saving.value || loading.value || mathLoading.value) return
+  uploadAttempted.value = true
+  if (!exam.value.title.trim()) { showAlert('Введите тему работы'); return }
   const selected = file.value
-  if (!selected || uploading.value || saving.value || loading.value || mathLoading.value) return
+  if (!selected) { showAlert('Выберите файл с заданиями'); return }
   uploading.value = true
   error.value = undefined
   try {
@@ -51,12 +58,13 @@ function removeTask(index: number) {
 }
 async function save() {
   if (saving.value || uploading.value || loading.value || mathLoading.value) return
-  submitted.value = true; saving.value = true; error.value = undefined
+  submitted.value = true
+  if (!exam.value.title.trim()) { showAlert('Введите тему работы'); return }
+  saving.value = true; error.value = undefined
   try {
     const snapshot: StudioExam = JSON.parse(JSON.stringify(exam.value))
     validateStudioExam(snapshot)
-    if (snapshot.tasks.some(task => !task.answer?.trim())) throw new Error('Введите ответ к каждому заданию')
-    for (const task of snapshot.tasks) { task.answer = task.answer!.trim(); task.answer_confirmed = true }
+    for (const task of snapshot.tasks) { task.answer = task.answer?.trim() ?? ''; task.answer_confirmed = !!task.answer }
     const serialized = JSON.stringify(snapshot)
     if (!currentDraft.value || savedSnapshot !== serialized) {
       const fingerprint = `${currentDraft.value?.draftRevision ?? 0}:${serialized}`
@@ -88,9 +96,9 @@ onMounted(async () => {
   <v-form @submit.prevent="save" class="key-editor">
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-5" />
     <template v-else>
-      <v-text-field v-model="exam.title" label="Тема" variant="outlined" maxlength="180" :disabled="saving || uploading" :error-messages="submitted && !exam.title.trim() ? 'Введите тему' : ''" />
+      <v-text-field v-model="exam.title" label="Тема" variant="outlined" maxlength="180" :disabled="saving || uploading" :error-messages="(submitted || uploadAttempted) && !exam.title.trim() ? 'Введите тему' : ''" />
       <v-file-input v-model="file" label="Файл с заданиями" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,.txt,.docx" prepend-icon="" :prepend-inner-icon="mdiFileDocumentOutline" variant="outlined" :loading="uploading" :disabled="saving || uploading || mathLoading" />
-      <v-btn type="button" color="primary" :loading="uploading" :disabled="!file || saving || mathLoading" class="mb-4" @click="upload()">Отправить</v-btn>
+      <v-btn type="button" color="primary" :loading="uploading" :disabled="saving || mathLoading" class="mb-4" @click="upload()">Отправить</v-btn>
       <p v-if="uploading || mathLoading" class="progress-text" role="status">Распознаём задания…</p>
       <v-progress-linear v-if="uploading || mathLoading" indeterminate color="primary" class="mb-5" />
       <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-5" />
@@ -99,9 +107,13 @@ onMounted(async () => {
         <div v-for="(task, index) in exam.tasks" :key="task.id" class="task-row">
           <div class="task-heading"><h2>Задание {{ index + 1 }}</h2><v-btn :icon="mdiDeleteOutline" variant="text" size="small" :disabled="saving" aria-label="Удалить задание" @click="removeTask(index)" /></div>
           <v-textarea v-model="task.prompt" label="Условие" variant="outlined" rows="3" auto-grow :disabled="saving || uploading" maxlength="20000" hide-details="auto" />
-          <ol v-if="task.options.length" class="task-options"><li v-for="(option, optionIndex) in task.options" :key="optionIndex">{{ option }}</li></ol>
+          <div v-if="task.prompt.trim()" class="task-preview">
+            <span class="preview-label">Как увидит ученик</span>
+            <MathText :text="task.prompt" />
+          </div>
+          <ol v-if="task.options.length" class="task-options"><li v-for="(option, optionIndex) in task.options" :key="optionIndex"><MathText :text="option" /></li></ol>
           <v-img v-for="image in task.images" :key="image.id" :src="`data:image/png;base64,${image.data_base64}`" :alt="image.caption" max-height="160" contain class="mt-3" />
-          <v-text-field v-model="task.answer" label="Ответ" variant="outlined" maxlength="1500" class="mt-3" :disabled="saving || uploading" :error-messages="submitted && !task.answer?.trim() ? 'Введите ответ' : ''" hide-details="auto" />
+          <v-text-field v-model="task.answer" label="Ответ (необязательно)" hint="Без ответа ИИ решит задание сам при проверке" persistent-hint variant="outlined" maxlength="1500" class="mt-3" :disabled="saving || uploading" hide-details="auto" />
         </div>
         <div v-for="figure in figures.filter(figure => !figure.taskId)" :key="figure.id" class="imported-figure">
           <v-img :src="`data:image/png;base64,${figure.data_base64}`" height="100" width="160" contain />
@@ -110,6 +122,12 @@ onMounted(async () => {
         <v-btn type="submit" color="primary" :loading="saving" :disabled="uploading || mathLoading" class="mt-4">Сохранить</v-btn>
       </template>
     </template>
+    <v-snackbar v-model="alertVisible" :timeout="4000" color="error" location="top">
+      {{ alertMessage }}
+      <template #actions>
+        <v-btn variant="text" @click="alertVisible = false">Закрыть</v-btn>
+      </template>
+    </v-snackbar>
   </v-form>
 </template>
 
@@ -120,6 +138,8 @@ onMounted(async () => {
 .task-heading h2 { font-size: clamp(18px, 2vw, 22px); font-weight: 500; }
 .instructions { white-space: pre-wrap; line-height: 1.6; margin-block: 16px; }
 .task-options { padding-left: 24px; margin-top: 12px; }
+.task-preview { margin-top: 12px; padding: 12px 16px; border: 1px solid rgb(var(--v-theme-border)); border-radius: 8px; background: rgba(var(--v-theme-on-surface), 0.03); }
+.preview-label { display: block; font-size: 12px; color: rgb(var(--v-theme-muted)); margin-bottom: 6px; }
 .progress-text { color: rgb(var(--v-theme-muted)); font-size: 14px; margin-bottom: 12px; }
 .imported-figure { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
 .imported-figure > :last-child { flex: 1; min-width: 220px; }
