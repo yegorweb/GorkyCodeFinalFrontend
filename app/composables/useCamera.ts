@@ -13,7 +13,7 @@ export function cameraError(error: unknown): string {
 }
 export function stopTracks(stream: MediaStream | null): void { stream?.getTracks().forEach(track => track.stop()); }
 export function cameraConstraints(deviceId = ''): MediaStreamConstraints {
-  return { audio: false, video: { ...(deviceId ? { deviceId: { exact: deviceId } } : {}), width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } } };
+  return { audio: false, video: { ...(deviceId ? { deviceId: { exact: deviceId } } : {}), width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } } };
 }
 export function useCamera() {
   const videoRef = shallowRef<HTMLVideoElement | null>(null);
@@ -94,6 +94,17 @@ export function useCamera() {
     if (token !== epoch) { bitmap.close(); return null; }
     return bitmap;
   }
+  async function still(): Promise<ImageBitmap | null> {
+    const track = stream.value?.getVideoTracks()[0];
+    const Ctor = (window as Window & { ImageCapture?: new (track: MediaStreamTrack) => { takePhoto(): Promise<Blob> } }).ImageCapture;
+    if (!track || !Ctor) return null;
+    const token = epoch;
+    try {
+      const bitmap = await createImageBitmap(await new Ctor(track).takePhoto());
+      if (token !== epoch) { bitmap.close(); return null; }
+      return bitmap;
+    } catch { return null; }
+  }
   onMounted(() => {
     alive = true; void refreshDevices();
     navigator.mediaDevices?.addEventListener('devicechange', refreshDevices);
@@ -103,6 +114,6 @@ export function useCamera() {
     navigator.mediaDevices?.removeEventListener('devicechange', refreshDevices);
     stop();
   });
-  return { videoRef, stream, devices, selectedDeviceId, sessionId, error, loading, resolution, permissionGranted, requestAccess, refreshDevices, setDeviceId, snapshot, stop };
+  return { videoRef, stream, devices, selectedDeviceId, sessionId, error, loading, resolution, permissionGranted, requestAccess, refreshDevices, setDeviceId, snapshot, still, stop };
 }
 export type CameraHandle = ReturnType<typeof useCamera>;
