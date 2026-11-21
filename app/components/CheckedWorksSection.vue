@@ -48,8 +48,9 @@ const resultLink = (scanId: string, taskId: string) => ({ path: '/works/results'
 h2 { margin: 0; font-size: clamp(19px, 1.62vw, 22px); font-weight: 500; line-height: 1.3; }
 .checked-button { letter-spacing: normal; text-transform: none; }
 .checked-table { background: rgb(var(--v-theme-surface)); border: 1px solid rgb(var(--v-theme-border)); border-radius: 10px; }
-.checked-table :deep(th), .checked-table :deep(td) { height: 36px; padding: 0 16px; font-size: 14px; font-weight: 400; }
-.checked-table :deep(th) { font-weight: 600 !important; }
+.checked-table :deep(th), .checked-table :deep(td) { height: 36px; padding: 0 16px; font-size: 14px; }
+.checked-table :deep(td) { font-weight: 400; }
+.checked-table :deep(thead th) { font-weight: 700 !important; }
 .checked-table :deep(th:not(:last-child)), .checked-table :deep(td:not(:last-child)) { border-right: 1px solid rgb(var(--v-theme-border)); }
 .name-column { width: 100%; }
 .date-column { min-width: 140px; }
