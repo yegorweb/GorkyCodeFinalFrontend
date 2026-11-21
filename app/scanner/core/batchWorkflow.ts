@@ -225,6 +225,36 @@ export class BatchWorkflow {
       await this.store.put({ ...uploading, submissionStatus: 'FAILED', submissionError: error instanceof Error ? error.message : 'Ошибка отправки страницы' }); throw error;
     }
   }
+  /** Upload the original capture as one anonymous work, without OCR or page grouping. */
+  async submitPhoto(captureId: string, batchId: string): Promise<PageReceipt> {
+    this.ensureLive()
+    const batch = await this.requireBatch(batchId)
+    const record = await this.store.getCapture(captureId)
+    if (!record || !record.blob.size) throw new Error('Фотография не найдена')
+    if (record.metadata.ownerId !== batch.ownerId || (record.batchId && record.batchId !== batchId)) throw new Error('Фото относится к другой проверке')
+    if (record.submissionStatus === 'ACCEPTED' && record.taskId) return { task_id: record.taskId, page_id: record.pageId!, capture_id: captureId, status: 'QUEUED', received_pages: 1, expected_pages: 1 }
+    if (batch.status !== 'OPEN' || batch.expectedPageCount !== 1 || batch.expectedStudentCount !== 1) throw new Error('Проверка фотографии уже закрыта')
+    const pageId = record.pageId ?? this.makeId()
+    const uploading: CaptureRecord = { ...record, batchId, pageId, pageNumber: 1, submissionStatus: 'UPLOADING', submissionError: undefined }
+    await this.store.put(uploading)
+    try {
+      const form = new FormData()
+      form.append('image', record.blob, pageId + '.' + (record.blob.type === 'image/png' ? 'png' : 'jpg'))
+      form.append('capture_id', captureId); form.append('page_id', pageId); form.append('page_number', '1')
+      form.append('template_id', batch.templateId); form.append('template_version', String(batch.templateVersion))
+      const response = await this.fetcher(this.api('/api/v1/batches/' + encodeURIComponent(batchId) + '/pages'), { method: 'POST', credentials: 'include', headers: { Accept: 'application/json', 'Idempotency-Key': captureId }, body: form })
+      const body = await bodyJson(response, 202)
+      const receipt: PageReceipt = { task_id: nonEmpty(body.task_id, 'task_id'), page_id: nonEmpty(body.page_id, 'page_id'), capture_id: nonEmpty(body.capture_id, 'capture_id'), status: body.status as PageReceipt['status'], received_pages: body.received_pages as number, expected_pages: body.expected_pages as number }
+      if (!validUUID(receipt.task_id) || !validUUID(receipt.page_id) || !validUUID(receipt.capture_id) || receipt.capture_id !== captureId || receipt.page_id !== pageId || !['RECEIVING', 'QUEUED'].includes(receipt.status) || receipt.received_pages !== 1 || receipt.expected_pages !== 1) throw new Error('Ответ сервера не совпадает с отправленной фотографией')
+      const student = { batchId, studentId: captureId, displayName: '' }
+      const task: TaskRecord = { taskId: receipt.task_id, studentId: captureId, displayName: '', status: receipt.status, receivedPages: 1, expectedPages: 1 }
+      await this.store.associatePage({ ...uploading, studentId: captureId, taskId: receipt.task_id, submissionStatus: 'ACCEPTED', status: 'succeeded' }, { ...batch, tasks: { ...batch.tasks, [receipt.task_id]: task } }, student)
+      return receipt
+    } catch (cause) {
+      await this.store.put({ ...uploading, submissionStatus: 'FAILED', submissionError: cause instanceof Error ? cause.message : 'Не удалось отправить фотографию' })
+      throw cause
+    }
+  }
   async closeBatch(batchId: string): Promise<BatchCloseResult> {
     const batch = await this.requireBatch(batchId);
     const unsubmitted = (await this.store.listCaptures()).filter(record => record.batchId === batchId && record.submissionStatus !== 'ACCEPTED');
@@ -280,7 +310,7 @@ export class BatchWorkflow {
         tasks[item.task_id] = { taskId: item.task_id, studentId: item.student_id, displayName: item.display_name ?? old?.displayName ?? '', status: item.status, result: item.result ?? old?.result, error: item.error ?? old?.error, updatedAt: item.updated_at, receivedPages: old?.receivedPages, expectedPages: old?.expectedPages, missingPageNumbers: old?.missingPageNumbers };
         if (TERMINAL_STATUSES.has(item.status)) pending.add(item.task_id);
       }
-      batch = { ...batch, tasks, cursor: page.next_cursor, hasMore: page.has_more, pendingAckTaskIds: [...pending] };
+      batch = { ...batch, tasks, cursor: page.next_cursor || batch.cursor, hasMore: page.has_more, pendingAckTaskIds: [...pending] };
       // Cursor and included results commit together before the ack request.
       await this.store.putBatch(batch); return page;
     } finally { this.polling.delete(batchId); }
