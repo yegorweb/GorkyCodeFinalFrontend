@@ -72,9 +72,17 @@ export function useScanner(camera: CameraHandle, options: ScannerOptions) {
       }
       current?.bitmap.close(); current = null;
       if (decision.capture) {
-        const chosen = best; best = null;
-        if (!chosen?.geometry) { chosen?.bitmap.close(); throw new Error('Не удалось сохранить геометрию выбранного кадра'); }
+        let chosen = best; best = null;
         busy.value = true;
+        // A full-resolution still beats the video frame for handwriting OCR; geometry is re-detected on it.
+        const still = await camera.still();
+        if (still) {
+          const shot = await ensureVision().analyze(still, camera.sessionId.value);
+          if (token !== generation || !running.value) { shot.bitmap.close(); chosen?.bitmap.close(); return; }
+          if (shot.geometry && shot.presence === 'full') { chosen?.bitmap.close(); chosen = shot; }
+          else shot.bitmap.close();
+        }
+        if (!chosen?.geometry) { chosen?.bitmap.close(); throw new Error('Не удалось сохранить геометрию выбранного кадра'); }
         const capture = await ensureVision().rectify(chosen.bitmap, chosen.geometry);
         if (token !== generation || !running.value) return;
         qr.value = capture.qr; qrIssue.value = '';

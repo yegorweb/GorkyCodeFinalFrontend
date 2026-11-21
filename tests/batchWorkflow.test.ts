@@ -220,6 +220,21 @@ test('empty result responses retain the previously persisted cursor and terminal
   assert.deepEqual((await store.getBatch(batchId))?.pendingAckTaskIds, [task.taskId]);
 });
 
+test('poll treats a cleaned-up server batch as finished instead of surfacing 404', async () => {
+  const store = new Store();
+  const task = { taskId: uuid('3'), studentId: uuid('4'), displayName: 'Иванов', status: 'SUCCEEDED' as const, result: { cells: [] } };
+  await store.putBatch({ ...makeBatch(), status: 'PROCESSING', cursor: 'stale-cursor', tasks: { [task.taskId]: task }, pendingAckTaskIds: [task.taskId] });
+  const workflow = new BatchWorkflow({ store, fetcher: async () => Response.json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } }, { status: 404 }) });
+  const page = await workflow.pollResults(batchId);
+  assert.deepEqual(page.items, []);
+  assert.equal(page.has_more, false);
+  const saved = await store.getBatch(batchId);
+  assert.equal(saved?.serverCleanupAcknowledged, true);
+  assert.deepEqual(saved?.pendingAckTaskIds, []);
+  assert.deepEqual(saved?.tasks[task.taskId], task);
+  workflow.dispose();
+});
+
 test('missing student requires explicit acknowledgement and supports an empty ACK plus separate cleanup', async () => {
   const store = new Store(); const batch = makeBatch(); batch.expectedStudentCount = 1;
   await store.putBatch(batch);

@@ -302,6 +302,11 @@ export class BatchWorkflow {
       let batch = await this.requireBatch(batchId);
       const params = new URLSearchParams({ limit: '50' }); if (batch.cursor) params.set('cursor', batch.cursor);
       const response = await this.fetcher(this.api('/api/v1/batches/' + encodeURIComponent(batchId) + '/results?' + params), { credentials: 'include', headers: { Accept: 'application/json' } });
+      // The server deletes batches after acknowledged cleanup; a stale cursor must not surface as an error.
+      if (response.status === 404 && batch.status !== 'OPEN') {
+        await this.store.putBatch({ ...batch, hasMore: false, pendingAckTaskIds: [], serverCleanupAcknowledged: true });
+        return { items: [], next_cursor: batch.cursor, has_more: false };
+      }
       const page = validateResultPage(await bodyJson(response, 200)); const tasks = { ...batch.tasks }; const pending = new Set(batch.pendingAckTaskIds);
       for (const item of page.items) {
         const old = tasks[item.task_id];
