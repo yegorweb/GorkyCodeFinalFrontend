@@ -195,7 +195,7 @@ onBeforeUnmount(() => {
 .hero-illustration { margin-top: clamp(16px, 1.6vw, 22px); }
 .hero-try-button {
   min-width: 174px;
-  margin-top: 12px;
+  margin-top: clamp(20px, 1.8vw, 24px);
   font-size: 16px !important;
   font-weight: 400;
   letter-spacing: normal;
