@@ -39,7 +39,7 @@ const login = handleSubmit(async values => {
   try {
     const res = await auth.login(values)
     if (res.ok) await navigateTo(redirectTo.value, { replace: true })
-    else error.value = res
+    else error.value = res.status === 401 ? 'неверный адрес или пароль' : res
   } finally { loading.value = false }
 })
 
