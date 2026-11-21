@@ -1,0 +1,16 @@
+import type { Point, Quad } from './types';
+export function project(h:number[], p:Point):Point { const d=h[6]*p.x+h[7]*p.y+h[8]; return {x:(h[0]*p.x+h[1]*p.y+h[2])/d,y:(h[3]*p.x+h[4]*p.y+h[5])/d}; }
+export function invert(h:number[]):number[] {const [a,b,c,d,e,f,g,i,j]=h; const out=[e*j-f*i,c*i-b*j,b*f-c*e,f*g-d*j,a*j-c*g,c*d-a*f,d*i-e*g,b*g-a*i,a*e-b*d];const det=a*out[0]+b*out[3]+c*out[6];if(Math.abs(det)<1e-12)throw Error('Вырожденная геометрия');return out.map(v=>v/det);}
+export function homography(src:Point[],dst:Point[]):number[] {
+ if(src.length<4||src.length!==dst.length)throw Error('Нужны четыре соответствия');
+ const ss=Math.max(1,...src.flatMap(p=>[Math.abs(p.x),Math.abs(p.y)]));const ds=Math.max(1,...dst.flatMap(p=>[Math.abs(p.x),Math.abs(p.y)]));
+ const rows:number[][]=[]; const vals:number[]=[];
+ src.forEach((p,i)=>{const x=p.x/ss,y=p.y/ss,u=dst[i].x/ds,v=dst[i].y/ds;rows.push([x,y,1,0,0,0,-u*x,-u*y],[0,0,0,x,y,1,-v*x,-v*y]);vals.push(u,v);});
+ const a=Array.from({length:8},(_,i)=>Array.from({length:9},(_,j)=>rows.reduce((s,r,k)=>s+r[i]*(j===8?vals[k]:r[j]),0)));
+ for(let k=0;k<8;k++){let pivot=k;for(let i=k+1;i<8;i++)if(Math.abs(a[i][k])>Math.abs(a[pivot][k]))pivot=i;[a[k],a[pivot]]=[a[pivot],a[k]];const v=a[k][k];if(Math.abs(v)<1e-12)throw Error('Вырожденная геометрия');for(let j=k;j<9;j++)a[k][j]/=v;for(let i=0;i<8;i++)if(i!==k){const f=a[i][k];for(let j=k;j<9;j++)a[i][j]-=f*a[k][j];}}
+ const h=a.map(r=>r[8]);return [h[0]*ds/ss,h[1]*ds/ss,h[2]*ds,h[3]*ds/ss,h[4]*ds/ss,h[5]*ds,h[6]/ss,h[7]/ss,1];
+}
+export function area(q:Point[]):number {return Math.abs(q.reduce((s,p,i)=>{const n=q[(i+1)%q.length];return s+p.x*n.y-p.y*n.x;},0))/2;}
+export function hull(points:Point[]):Point[]{ const p=points.slice().sort((a,b)=>a.x-b.x||a.y-b.y);const cross=(o:Point,a:Point,b:Point)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);const half=(a:Point[])=>{const h:Point[]=[];for(const v of a){while(h.length>1&&cross(h[h.length-2],h[h.length-1],v)<=0)h.pop();h.push(v);}return h;};const a=half(p),b=half(p.slice().reverse());return [...a.slice(0,-1),...b.slice(0,-1)];}
+export function reduceQuad(points:Point[]):Quad|null {const h=hull(points);if(h.length<4)return null;while(h.length>4){let best=0,small=Infinity;for(let i=0;i<h.length;i++){const v=area([h[(i+h.length-1)%h.length],h[i],h[(i+1)%h.length]]);if(v<small){small=v;best=i;}}h.splice(best,1);}const start=h.reduce((b,p,i)=>p.x+p.y<h[b].x+h[b].y?i:b,0);return [...h.slice(start),...h.slice(0,start)] as Quad;}
+export function warpRGBA(source:Uint8ClampedArray,sw:number,sh:number,outputWidth:number,outputHeight:number,inverse:number[]):Uint8ClampedArray {const out=new Uint8ClampedArray(outputWidth*outputHeight*4);for(let y=0;y<outputHeight;y++)for(let x=0;x<outputWidth;x++){const p=project(inverse,{x:x+.5,y:y+.5}),ox=(y*outputWidth+x)*4;if(p.x<0||p.y<0||p.x>sw-1||p.y>sh-1){out[ox]=out[ox+1]=out[ox+2]=255;out[ox+3]=255;continue;}const ix=Math.floor(p.x),iy=Math.floor(p.y),dx=p.x-ix,dy=p.y-iy;for(let c=0;c<3;c++){const at=(xx:number,yy:number)=>source[(Math.min(sh-1,yy)*sw+Math.min(sw-1,xx))*4+c];out[ox+c]=at(ix,iy)*(1-dx)*(1-dy)+at(ix+1,iy)*dx*(1-dy)+at(ix,iy+1)*(1-dx)*dy+at(ix+1,iy+1)*dx*dy;}out[ox+3]=255;}return out;}

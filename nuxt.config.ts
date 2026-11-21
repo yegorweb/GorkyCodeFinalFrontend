@@ -1,8 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  ssr: false,
+  typescript: { strict: true, tsConfig: { compilerOptions: { noUncheckedIndexedAccess: false } } },
   devtools: { enabled: true },
-  modules: ['@nuxtjs/robots', '@nuxtjs/sitemap', 'vuetify-nuxt-module', 'nuxt-svgo', '@nuxt/fonts'],
+  modules: ['vuetify-nuxt-module', 'nuxt-svgo', '@nuxt/fonts'],
 
   css: ['~/assets/styles/main.scss'],
 
@@ -10,6 +12,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: '', // can be overridden by NUXT_PUBLIC_API_BASE environment variable
       siteUrl: '', // can be overridden by NUXT_PUBLIC_SITE_URL environment variable
+      preparationBase: '',
     },
   },
 
@@ -24,7 +27,7 @@ export default defineNuxtConfig({
     }
   },
 
-  site: { indexable: false },
+  nitro: { preset: 'static', prerender: { crawlLinks: false, routes: ['/', '/auth/login', '/works', '/works/new', '/works/view', '/works/check', '/works/results'] } },
 
   features: {
     inlineStyles: false
@@ -66,7 +69,6 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: [
         '@mdi/js',
-        '@unhead/schema-org/vue',
         '@vue/devtools-core',
         '@vue/devtools-kit',
         'vee-validate',

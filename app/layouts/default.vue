@@ -78,7 +78,7 @@ async function logout() {
       <NuxtLink to="/" class="header-brand">Проверятор</NuxtLink>
 
       <div v-if="loggedIn" class="header-account d-flex align-center">
-        <span class="header-name" :title="user?.fullname">{{ user?.fullname }}</span>
+        <span class="header-name" :title="user?.email">{{ user?.email }}</span>
         <v-btn
           :icon="mdiLogout"
           :loading="logoutLoading"
@@ -109,7 +109,7 @@ async function logout() {
     </v-container>
   </header>
 
-  <NuxtPage />
+  <NuxtPage :page-key="pageRoute => pageRoute.fullPath" />
 
   <v-spacer />
 </template>

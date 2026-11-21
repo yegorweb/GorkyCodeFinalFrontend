@@ -9,11 +9,9 @@ useSeoMeta({
 const route = useRoute()
 
 const auth = useAuth()
-const redirectTo = Array.isArray(route.query.redirect) ? 
-  (route.query.redirect[0] ? decodeURIComponent(route.query.redirect[0]) : '/') : 
-  (route.query.redirect ? decodeURIComponent(route.query.redirect) : '/')
+const redirectTo = computed(() => safeLocalRedirect(route.query.redirect))
 
-const { handleSubmit } = useForm({
+const { handleSubmit } = useForm<LoginRequest>({
   validationSchema: {
     email(value: string) {
       if (!value) return 'введите email' 
@@ -22,14 +20,13 @@ const { handleSubmit } = useForm({
     },
     password(value: string) {
       if (!value) return 'введите пароль'
-      if (value.length < 4) return 'минимум 4 символа'
       return true
     },
   },
 })
 
-const email = useField('email')
-const password = useField('password')
+const email = useField<string>('email')
+const password = useField<string>('password')
 
 const pressed = ref(false)
 const show_password = ref(false)
@@ -39,11 +36,14 @@ const loading = ref(false)
 const login = handleSubmit(async values => {
   error.value = null
   loading.value = true
-  const res = await auth.login(values.email, values.password)
-  if (res.ok) await navigateTo(redirectTo, { replace: true })
-  else error.value = res
-  loading.value = false
+  try {
+    const res = await auth.login(values)
+    if (res.ok) await navigateTo(redirectTo.value, { replace: true })
+    else error.value = res
+  } finally { loading.value = false }
 })
+
+onMounted(() => { if (auth.loggedIn.value) void navigateTo(redirectTo.value, { replace: true }) })
 </script>
 
 <template>
@@ -89,16 +89,6 @@ const login = handleSubmit(async values => {
               :class="['w-100', {'mt-3': !!email.errorMessage.value&&pressed}]"
             />
   
-            <div :style="{ marginTop: !!password.errorMessage.value&&pressed ? '4px' : '-14px' }" class="w-100">
-              <v-btn 
-                @click="navigateTo('/auth/forgot-password')"
-                density="compact"
-                variant="text" 
-                color="blue-darken-3" 
-                class="reset"
-                slim
-              >Не помню пароль</v-btn>
-            </div>
   
             <v-btn 
               type="submit" 
@@ -111,15 +101,6 @@ const login = handleSubmit(async values => {
             <ErrorMessage v-if="error" v-model="error" class="mt-2 text-center" />
           </v-form>
     
-          <v-btn
-            @click="navigateTo({ path: '/auth/reg', replace: true, query: route.query })" 
-            variant="text"
-            density="compact"
-            class="text-body-2 cursor-pointer font-weight-semibold text-blue-darken-3 pa-1 mt-3"
-            style="font-size: 16px !important;"
-          >
-            зарегистрироваться
-          </v-btn>
         </v-card>
       </v-col>
     </v-row>

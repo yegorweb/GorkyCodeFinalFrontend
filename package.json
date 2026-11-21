@@ -3,14 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
+    "build": "nuxt generate",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "vue-tsc --noEmit -p .nuxt/tsconfig.app.json",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
+    "fflate": "^0.8.3",
+    "jsqr": "^1.4.0",
     "nuxt": "^4.6.2",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.44",
@@ -20,9 +24,15 @@
     "@nuxt/fonts": "^1.2.0",
     "@nuxtjs/robots": "^7.0.2",
     "@nuxtjs/sitemap": "^9.1.0",
+    "@types/node": "^26.6.6",
+    "@types/pngjs": "^6.0.5",
     "baseline-browser-mapping": "^2.11.29",
     "nuxt-svgo": "^5.3.0",
+    "pngjs": "^7.0.0",
     "sass": "^1.105.2",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vue-tsc": "^3.3.14",
     "vuetify-nuxt-module": "^1.0.0-rc.6"
   }
 }

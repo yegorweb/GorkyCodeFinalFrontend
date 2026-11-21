@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: GorkyCodeFinal backend
-  version: 0.2.0
+  version: 0.4.0
   description: Teacher API for batches, student submissions and asynchronous grading results.
 servers:
   - url: /
@@ -145,6 +145,1412 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/classes:
+    get:
+      summary: List owned classes
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeacherClass'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    post:
+      summary: Create class; repeat same UUID and payload safely
+      security:
+      - teacherSession: []
+      responses:
+        '201':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherClass'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: &pathid001
+                  type: string
+                  format: uuid
+                name: &pathid002
+                  type: string
+              required:
+              - name
+  /api/v1/classes/{classId}/students:
+    get:
+      summary: List permanent roster; duplicate names are separate UUIDs
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PermanentStudent'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: classId
+        in: path
+        required: true
+        schema: *pathid001
+    post:
+      summary: Add permanent student
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermanentStudent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: classId
+        in: path
+        required: true
+        schema: *pathid001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: *pathid001
+                display_name: *pathid002
+              required:
+              - display_name
+  /api/v1/classes/{classId}/students/{studentId}:
+    put:
+      summary: Correct student display name without merging identities
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermanentStudent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: classId
+        in: path
+        required: true
+        schema: *pathid001
+      - name: studentId
+        in: path
+        required: true
+        schema: *pathid001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name: *pathid002
+              required:
+              - display_name
+  /api/v1/work-families:
+    get:
+      summary: List owned assessments
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkFamily'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    post:
+      summary: Create assessment family
+      security:
+      - teacherSession: []
+      responses:
+        '201':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkFamily'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: *pathid001
+                title: *pathid002
+              required:
+              - title
+  /api/v1/work-families/{familyId}/variants:
+    get:
+      summary: List separate persistent variants and confirmed keys
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkVariant'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: familyId
+        in: path
+        required: true
+        schema: *pathid001
+    post:
+      summary: Save variant; distinct works ID per variant; repeated label must match
+        payload
+      security:
+      - teacherSession: []
+      responses:
+        '201':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkVariant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: familyId
+        in: path
+        required: true
+        schema: *pathid001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VariantInput'
+  /api/v1/work-families/{familyId}/variants/{workId}/topics:
+    put:
+      summary: Update future topic mapping; historical snapshots stay unchanged
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkVariant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: familyId
+        in: path
+        required: true
+        schema: *pathid001
+      - name: workId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tasks:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TopicMapping'
+              required:
+              - tasks
+  /api/v1/available-works:
+    get:
+      summary: List explicit owned legacy works and keys; no title-based merging
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AvailableWork'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/classes/{classId}/assignments:
+    post:
+      summary: Issue family once to a class; further submissions are retakes
+      security:
+      - teacherSession: []
+      responses:
+        '201':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassAssignment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: classId
+        in: path
+        required: true
+        schema: *pathid001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                family_id: *pathid001
+              required:
+              - family_id
+  /api/v1/classes/{classId}/journal:
+    get:
+      summary: Roster by issued assessment, latest terminal submission; no submission
+        has empty cell
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassJournal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: classId
+        in: path
+        required: true
+        schema: *pathid001
+  /api/v1/students/{studentId}/attempts:
+    get:
+      summary: All permanent attempts; is_current follows same rule as journal
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentHistory'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema: *pathid001
+  /api/v1/attempts/{attemptId}:
+    get:
+      summary: Permanent task answers, evidence and historical metadata after scanner
+        cleanup
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermanentAttempt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: attemptId
+        in: path
+        required: true
+        schema: *pathid001
+  /api/v1/attempts/{attemptId}/grade:
+    put:
+      summary: Teacher sets/corrects 2–5 or clears with null; AI never assigns school
+        grades
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermanentAttempt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: attemptId
+        in: path
+        required: true
+        schema: *pathid001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grade:
+                  type: integer
+                  minimum: 2
+                  maximum: 5
+                  nullable: true
+              required:
+              - grade
+  /api/v1/attempts/{attemptId}/tasks/{taskNumber}/decision:
+    put:
+      summary: Teacher override wins; null restores original system proposal
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermanentAttempt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: attemptId
+        in: path
+        required: true
+        schema: *pathid001
+      - name: taskNumber
+        in: path
+        required: true
+        schema: *pathid002
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  nullable: true
+                  enum:
+                  - correct
+                  - wrong
+                  - null
+              required:
+              - status
+  /api/v1/classes/{classId}/statistics:
+    get:
+      summary: Latest terminal snapshot with explicit period, denominators, timeline, assistance and retake pairs
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradebookStatistics'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: classId
+        in: path
+        required: true
+        schema: *pathid001
+      - name: from
+        in: query
+        description: UTC [from,to); latest terminal selection precedes period filtering
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        description: UTC [from,to); latest terminal selection precedes period filtering
+        schema:
+          type: string
+          format: date-time
+      - name: bucket
+        in: query
+        schema:
+          type: string
+          enum:
+          - day
+          - week
+          - month
+          default: week
+  /api/v1/students/{studentId}/statistics:
+    get:
+      summary: Latest terminal snapshot with explicit period, denominators, timeline, assistance and retake pairs
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; response is Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradebookStatistics'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema: *pathid001
+      - name: from
+        in: query
+        description: UTC [from,to); latest terminal selection precedes period filtering
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        description: UTC [from,to); latest terminal selection precedes period filtering
+        schema:
+          type: string
+          format: date-time
+      - name: bucket
+        in: query
+        schema:
+          type: string
+          enum:
+          - day
+          - week
+          - month
+          default: week
+  /api/v1/constructor/editor/:
+    get:
+      summary: Serve the integrated editor; static app.js/style.css use the same protected prefix
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+  /api/v1/constructor/editor/app.js:
+    get:
+      summary: Protected constructor editor asset
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            text/javascript:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+  /api/v1/constructor/editor/style.css:
+    get:
+      summary: Protected constructor editor asset
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            text/css:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+  /api/v1/constructor/capabilities:
+    get:
+      summary: Renderer capabilities; no secrets exposed
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+  /api/v1/constructor/examples:
+    get:
+      summary: Renderer examples; no secrets exposed
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+  /api/v1/constructor/import:
+    post:
+      summary: Authenticated renderer import; existing test-studio DTO
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /api/v1/constructor/parse:
+    post:
+      summary: Authenticated renderer parse; existing test-studio DTO
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /api/v1/constructor/estimate:
+    post:
+      summary: Authenticated renderer estimate; existing test-studio DTO
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /api/v1/constructor/preview:
+    post:
+      summary: Authenticated renderer preview; existing test-studio DTO
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /api/v1/constructor/generate:
+    post:
+      summary: Authenticated renderer generate; existing test-studio DTO
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /api/v1/constructor/package:
+    post:
+      summary: Authenticated renderer package; existing test-studio DTO
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /api/v1/constructor/import-jobs/{jobId}:
+    get:
+      summary: Read owned temporary import job
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-f0-9]{32}$
+  /api/v1/constructor/import-jobs/{jobId}/cancel:
+    post:
+      summary: Cancel owned temporary import job
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-f0-9]{32}$
+  /api/v1/constructor/drafts:
+    get:
+      summary: List persistent owned drafts
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConstructorDraft'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+    post:
+      summary: Save draft with request-id idempotency; revision starts at one
+      security:
+      - teacherSession: []
+      responses:
+        '201':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstructorDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConstructorDraftInput'
+  /api/v1/constructor/drafts/{draftId}:
+    get:
+      summary: Load persistent owned draft
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstructorDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      parameters:
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Save owned draft only at expected_revision; stale writes return409
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstructorDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConstructorDraftInput'
+      parameters:
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      summary: Soft-delete owned draft; preserve immutable publications
+      security:
+      - teacherSession: []
+      responses:
+        '204':
+          description: 'Success; Cache-Control: no-store'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      parameters:
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/constructor/drafts/{draftId}/publish:
+    post:
+      summary: Build real package and atomically register immutable publication; unconfirmed key produces work_id=null
+      security:
+      - teacherSession: []
+      responses:
+        '201':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstructorVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConstructorPublishInput'
+      parameters:
+      - name: draftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/constructor/versions:
+    get:
+      summary: List immutable owned publications
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConstructorVersion'
+                required:
+                - items
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+  /api/v1/constructor/versions/{versionId}:
+    get:
+      summary: Read exact frozen publication and artifact URLs
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstructorVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      parameters:
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/constructor/versions/{versionId}/artifacts/{kind}:
+    get:
+      summary: Download exact stored owned publication bytes
+      security:
+      - teacherSession: []
+      responses:
+        '200':
+          description: 'Success; Cache-Control: no-store'
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request exceeds 32 MiB
+        '422':
+          description: Renderer validation failed
+        '503':
+          description: Renderer unavailable; saved draft preserved
+        '504':
+          description: Renderer exceeded 180 second timeout; saved draft preserved
+      parameters:
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - pdf
+          - zip
+          - layout
+          - exam
 components:
   securitySchemes:
     teacherSession: { type: apiKey, in: cookie, name: teacher_session }
@@ -203,6 +1609,8 @@ components:
       type: object
       required: [assignment_id, variant, template_id, template_version, expected_student_count, expected_page_count]
       properties:
+        class_id: { type: string, format: uuid, description: "Provide with work_id for permanent gradebook; omit both for legacy mode." }
+        work_id: { type: integer, format: int64, minimum: 1 }
         assignment_id: { type: string, minLength: 1, maxLength: 100 }
         variant: { type: string, minLength: 1, maxLength: 20 }
         template_id: { type: string, minLength: 1, maxLength: 100, description: Printed Test Studio template ID encoded in the QR; not the scanner geometry ID. }
@@ -289,3 +1697,935 @@ components:
           minItems: 0
           items: { type: string, format: uuid }
         acknowledge_missing_students: { type: boolean, description: Must be true when the closed batch reports missing_student_count greater than zero. }
+
+    TeacherClass:
+      type: object
+      properties:
+        id: &id001
+          type: string
+          format: uuid
+        name: &id002
+          type: string
+        created_at: &id003
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - created_at
+    PermanentStudent:
+      type: object
+      properties:
+        id: *id001
+        class_id: *id001
+        display_name: *id002
+        created_at: *id003
+      required:
+      - id
+      - class_id
+      - display_name
+      - created_at
+    WorkFamily:
+      type: object
+      properties:
+        id: *id001
+        title: *id002
+        created_at: *id003
+      required:
+      - id
+      - title
+      - created_at
+    CatalogTask:
+      type: object
+      properties:
+        task_number: *id002
+        topic: &id005
+          type: string
+          nullable: true
+        text: *id002
+        answer: *id002
+        answer_type:
+          type: string
+          enum:
+          - number
+          - sequence
+          - choice_set
+          - matching
+          - true_false
+          - text
+      required:
+      - task_number
+      - text
+      - answer
+      - answer_type
+    WorkVariant:
+      type: object
+      properties:
+        work_id: &id004
+          type: integer
+          format: int64
+        family_id: *id001
+        title: *id002
+        assignment_id: *id002
+        variant:
+          type: string
+          pattern: ^[0-9]+$
+        template_id: *id002
+        template_version:
+          type: integer
+          minimum: 1
+        expected_page_count:
+          type: integer
+          minimum: 1
+          maximum: 100
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogTask'
+      required:
+      - work_id
+      - family_id
+      - assignment_id
+      - variant
+      - template_id
+      - template_version
+      - expected_page_count
+      - tasks
+    VariantInput:
+      type: object
+      properties:
+        existing_work_id: *id004
+        variant:
+          type: string
+          pattern: ^[0-9]+$
+        template_id: *id002
+        template_version:
+          type: integer
+          minimum: 1
+        expected_page_count:
+          type: integer
+          minimum: 1
+          maximum: 100
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogTask'
+      required:
+      - variant
+      - template_id
+      - template_version
+      - expected_page_count
+      - tasks
+    AvailableWork:
+      type: object
+      properties:
+        work_id: *id004
+        title: *id002
+        answers: &id006
+          type: object
+          additionalProperties: true
+          nullable: true
+      required:
+      - work_id
+      - title
+    ClassAssignment:
+      type: object
+      properties:
+        id: *id001
+        class_id: *id001
+        family_id: *id001
+        title: *id002
+        created_at: *id003
+      required:
+      - id
+      - class_id
+      - family_id
+      - title
+      - created_at
+    AttemptTask:
+      type: object
+      properties:
+        task_number: *id002
+        topic: *id005
+        status:
+          type: string
+          enum:
+          - correct
+          - wrong
+          - unreadable
+          - missing
+          - manual
+        teacher_status:
+          type: string
+          nullable: true
+          enum:
+          - correct
+          - wrong
+          - null
+        review:
+          type: string
+          enum:
+          - ai_proposed
+          - teacher_confirmed
+          - teacher_rejected
+        ai_checked:
+          type: boolean
+        student_answer: *id005
+        expected: *id005
+        evidence: *id005
+        details: *id006
+        effective_status:
+          type: string
+          enum:
+          - correct
+          - wrong
+          - pending
+      required:
+      - task_number
+      - topic
+      - status
+      - teacher_status
+      - review
+      - ai_checked
+      - effective_status
+    PermanentAttempt:
+      type: object
+      properties:
+        id: *id001
+        student_id: *id001
+        class_id: *id001
+        class_assignment_id: *id001
+        work_id: *id004
+        family_id: *id001
+        variant: *id002
+        status:
+          type: string
+          enum:
+          - SUCCEEDED
+          - FAILED
+          - INCOMPLETE
+        grade: &id007
+          type: integer
+          minimum: 2
+          maximum: 5
+          nullable: true
+        grade_source:
+          type: string
+          enum:
+          - teacher
+          - null
+          nullable: true
+        created_at: *id003
+        completed_at: *id003
+        updated_at: *id003
+        metadata_snapshot: *id006
+        result: *id006
+        error: *id006
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttemptTask'
+        is_current:
+          type: boolean
+      required:
+      - id
+      - student_id
+      - class_id
+      - class_assignment_id
+      - work_id
+      - family_id
+      - status
+      - grade
+      - grade_source
+      - tasks
+      - is_current
+    JournalCell:
+      type: object
+      properties:
+        student_id: *id001
+        class_assignment_id: *id001
+        attempt_id: *id001
+        work_id: *id004
+        variant: *id002
+        status: *id002
+        grade: *id007
+        grade_source: *id005
+        correct:
+          type: integer
+        checked:
+          type: integer
+        pending:
+          type: integer
+        completed_at: *id003
+      required:
+      - student_id
+      - class_assignment_id
+      - attempt_id
+      - work_id
+      - variant
+      - status
+      - grade
+      - correct
+      - checked
+      - pending
+    ClassJournal:
+      type: object
+      properties:
+        class:
+          $ref: '#/components/schemas/TeacherClass'
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassAssignment'
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermanentStudent'
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalCell'
+        rule:
+          type: string
+          enum:
+          - latest_terminal_attempt
+      required:
+      - class
+      - assignments
+      - students
+      - cells
+      - rule
+    StudentHistory:
+      type: object
+      properties:
+        student:
+          $ref: '#/components/schemas/PermanentStudent'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermanentAttempt'
+        rule: *id002
+      required:
+      - student
+      - items
+      - rule
+    TopicStatistic:
+      type: object
+      properties:
+        topic: *id005
+        correct:
+          type: integer
+        checked:
+          type: integer
+        pending:
+          type: integer
+        ratio:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 1
+      required:
+      - topic
+      - correct
+      - checked
+      - pending
+      - ratio
+    GradebookStatistics:
+      type: object
+      properties:
+        scope:
+          $ref: '#/components/schemas/AnalyticsScope'
+        grade_sum:
+          type: integer
+        distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        grade_shares:
+          $ref: '#/components/schemas/GradeShares'
+        coverage:
+          $ref: '#/components/schemas/AnalyticsCoverage'
+        status_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelinePoint'
+        comparison:
+          $ref: '#/components/schemas/PeriodComparison'
+        missing_work:
+          type: array
+          items:
+            $ref: '#/components/schemas/MissingWork'
+        help_signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/HelpSignal'
+        retakes:
+          $ref: '#/components/schemas/RetakeStatistics'
+        rule: *id002
+        period: *id002
+        attempt_count:
+          type: integer
+        graded_count:
+          type: integer
+        ungraded_count:
+          type: integer
+        unsubmitted_count:
+          type: integer
+        average_grade:
+          type: number
+          nullable: true
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicStatistic'
+        weak_topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicStatistic'
+      required:
+      - rule
+      - period
+      - attempt_count
+      - graded_count
+      - ungraded_count
+      - unsubmitted_count
+      - average_grade
+      - topics
+      - weak_topics
+
+    TopicMapping:
+      type: object
+      required: [task_number, topic]
+      properties:
+        task_number: { type: string }
+        topic: { type: string, nullable: true }
+    ConstructorTask:
+      type: object
+      properties:
+        layout_task_id:
+          type: string
+          maxLength: 64
+        errorlab_task_id:
+          type: string
+          pattern: ^[1-9][0-9]?$
+        display_number:
+          type: integer
+          minimum: 1
+          maximum: 80
+        topic:
+          type: string
+          nullable: true
+          maxLength: 300
+        answer:
+          type: string
+          maxLength: 1500
+        answer_type:
+          type: string
+          enum:
+          - text
+          - number
+          - sequence
+          - choice_set
+          - matching
+          - true_false
+        confirmed:
+          type: boolean
+      required:
+      - layout_task_id
+      - errorlab_task_id
+      - display_number
+      - answer
+      - answer_type
+      - confirmed
+    ConstructorExam:
+      type: object
+      description: Full canonical test-studio exam, retaining drawings, solution guides, print density, workspace, formulas
+        and arbitrary stable task IDs. See test-studio engine.validate_exam.
+      required:
+      - variant
+      - tasks
+      properties:
+        title:
+          type: string
+        subject:
+          type: string
+        variant:
+          type: string
+          pattern: ^[0-9]{1,20}$
+        tasks:
+          type: array
+          minItems: 1
+          maxItems: 80
+          items:
+            type: object
+            required:
+            - id
+            - prompt
+            properties:
+              id:
+                type: string
+                maxLength: 64
+              prompt:
+                type: string
+                maxLength: 20000
+      additionalProperties: true
+    ConstructorDraftInput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        request_id:
+          type: string
+          format: uuid
+        expected_revision:
+          type: integer
+          minimum: 0
+        family_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 300
+        exam:
+          $ref: '#/components/schemas/ConstructorExam'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConstructorTask'
+        existing_work_id:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 1
+      required:
+      - request_id
+      - title
+      - exam
+      - tasks
+    ConstructorDraft:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        family_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        exam:
+          $ref: '#/components/schemas/ConstructorExam'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConstructorTask'
+        existing_work_id:
+          type: integer
+          format: int64
+          nullable: true
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - family_id
+      - title
+      - exam
+      - tasks
+      - revision
+      - created_at
+      - updated_at
+    ConstructorPublishInput:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        expected_revision:
+          type: integer
+          minimum: 1
+      required:
+      - request_id
+      - expected_revision
+    ConstructorVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        draft_id:
+          type: string
+          format: uuid
+        draft_revision:
+          type: integer
+        family_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        variant:
+          type: string
+        version_number:
+          type: integer
+          minimum: 1
+        work_id:
+          type: integer
+          format: int64
+          nullable: true
+        key_ready:
+          type: boolean
+        template_id:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+          description: Printed form revision from real layout, independent of draft revision and scanner geometry version.
+        scanner_template_id:
+          type: string
+        scanner_template_version:
+          type: integer
+        page_count:
+          type: integer
+          minimum: 1
+          maximum: 100
+        exam:
+          $ref: '#/components/schemas/ConstructorExam'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConstructorTask'
+        layout:
+          type: object
+          additionalProperties: true
+        artifacts:
+          type: object
+          properties:
+            pdf:
+              type: string
+              description: Authenticated same-origin download URL
+            zip:
+              type: string
+              description: Authenticated same-origin download URL
+            layout:
+              type: string
+              description: Authenticated same-origin download URL
+            exam:
+              type: string
+              description: Authenticated same-origin download URL
+          required:
+          - pdf
+          - zip
+          - layout
+          - exam
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - draft_id
+      - draft_revision
+      - family_id
+      - variant
+      - version_number
+      - work_id
+      - key_ready
+      - template_id
+      - revision
+      - scanner_template_id
+      - scanner_template_version
+      - page_count
+      - exam
+      - tasks
+      - layout
+      - artifacts
+      - created_at
+    AnalyticsScope:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+          nullable: true
+        to:
+          type: string
+          format: date-time
+          nullable: true
+        bucket:
+          type: string
+        selection_rule:
+          type: string
+        time_basis:
+          type: string
+        coverage_rule:
+          type: string
+      required:
+      - from
+      - to
+      - bucket
+      - selection_rule
+      - time_basis
+      - coverage_rule
+    CountRatio:
+      type: object
+      properties:
+        numerator:
+          type: integer
+        denominator:
+          type: integer
+        value:
+          type: number
+          nullable: true
+      required:
+      - numerator
+      - denominator
+      - value
+    GradeShares:
+      type: object
+      properties:
+        twos:
+          $ref: '#/components/schemas/CountRatio'
+        three_to_five:
+          $ref: '#/components/schemas/CountRatio'
+        four_to_five:
+          $ref: '#/components/schemas/CountRatio'
+      required:
+      - twos
+      - three_to_five
+      - four_to_five
+    AnalyticsCoverage:
+      type: object
+      properties:
+        student_count:
+          type: integer
+        assignment_count:
+          type: integer
+        expected_count:
+          type: integer
+        submitted_count:
+          type: integer
+        unsubmitted_count:
+          type: integer
+        excluded_current_count:
+          type: integer
+      required:
+      - student_count
+      - assignment_count
+      - expected_count
+      - submitted_count
+      - unsubmitted_count
+      - excluded_current_count
+    TimelinePoint:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        attempt_count:
+          type: integer
+        graded_count:
+          type: integer
+        ungraded_count:
+          type: integer
+        grade_sum:
+          type: integer
+        average_grade:
+          type: number
+          nullable: true
+      required:
+      - from
+      - to
+      - attempt_count
+      - graded_count
+      - ungraded_count
+      - grade_sum
+      - average_grade
+    PeriodComparison:
+      type: object
+      properties:
+        available:
+          type: boolean
+        previous_from:
+          type: string
+          format: date-time
+          nullable: true
+        previous_to:
+          type: string
+          format: date-time
+          nullable: true
+        current_count:
+          type: integer
+        previous_count:
+          type: integer
+        current_average:
+          type: number
+          nullable: true
+        previous_average:
+          type: number
+          nullable: true
+        delta:
+          type: number
+          nullable: true
+      required:
+      - available
+      - previous_from
+      - previous_to
+      - current_count
+      - previous_count
+      - current_average
+      - previous_average
+      - delta
+    MissingWork:
+      type: object
+      properties:
+        student_id:
+          type: string
+        student_name:
+          type: string
+        class_assignment_id:
+          type: string
+        title:
+          type: string
+      required:
+      - student_id
+      - student_name
+      - class_assignment_id
+      - title
+    HelpReason:
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        attempt_ids:
+          type: array
+          items:
+            type: string
+        assignment_ids:
+          type: array
+          items:
+            type: string
+        topic:
+          type: string
+          nullable: true
+        correct:
+          type: integer
+        checked:
+          type: integer
+        pending:
+          type: integer
+      required:
+      - code
+      - label
+      - attempt_ids
+      - assignment_ids
+      - topic
+      - correct
+      - checked
+      - pending
+    HelpSignal:
+      type: object
+      properties:
+        student_id:
+          type: string
+        student_name:
+          type: string
+        needs_help:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/HelpReason'
+      required:
+      - student_id
+      - student_name
+      - needs_help
+      - reasons
+    RetakePair:
+      type: object
+      properties:
+        student_id:
+          type: string
+        student_name:
+          type: string
+        class_assignment_id:
+          type: string
+        first_attempt_id:
+          type: string
+        last_attempt_id:
+          type: string
+        before:
+          type: integer
+          nullable: true
+        after:
+          type: integer
+          nullable: true
+        delta:
+          type: integer
+          nullable: true
+        comparable:
+          type: boolean
+      required:
+      - student_id
+      - student_name
+      - class_assignment_id
+      - first_attempt_id
+      - last_attempt_id
+      - before
+      - after
+      - delta
+      - comparable
+    RetakeStatistics:
+      type: object
+      properties:
+        pair_count:
+          type: integer
+        comparable_count:
+          type: integer
+        uncomparable_count:
+          type: integer
+        improved:
+          type: integer
+        worsened:
+          type: integer
+        unchanged:
+          type: integer
+        before_average:
+          type: number
+          nullable: true
+        after_average:
+          type: number
+          nullable: true
+        average_delta:
+          type: number
+          nullable: true
+        pairs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetakePair'
+      required:
+      - pair_count
+      - comparable_count
+      - uncomparable_count
+      - improved
+      - worsened
+      - unchanged
+      - before_average
+      - after_average
+      - average_delta
+      - pairs

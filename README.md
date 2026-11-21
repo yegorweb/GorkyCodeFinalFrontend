@@ -1,140 +1,53 @@
-# Описание
-Это приложение на Nuxt
+# Проверятор
 
-После копирования шаблона <https://github.com/yegorweb/clean-nuxt-template> рекомендуется обновить Nuxt и его зависимости с помощью этих команд:
-```shell
-npx nuxt upgrade --dedupe
-npm i baseline-browser-mapping@latest -D
-```
+Nuxt/Vuetify приложение со статической сборкой. Все запросы и обработка камеры выполняются в браузере; серверных плагинов и Nuxt API routes нет.
 
-# Перед запуском
+## Запуск и сборка
 
-## Установка зависимостей
-```shell
-npm i
-```
-
-## Переменные окружения
-Все переменные окружения прописывать в `.env`:
-- `NUXT_DEV_PORT`?: номер порта в режиме разработки
-- `NUXT_SITE_NAME`: название сайта для Nuxt Sitemap
-- `NUXT_PUBLIC_SITE_URL`: URL сайта
-- `NUXT_PUBLIC_API_BASE`: URL к API
-
-# Разработка
-
-```shell
+```sh
+npm install
 npm run dev
+npm run typecheck
+npm test
+npm run build
 ```
 
-# Важные моменты
+Размещайте содержимое `.output/public`. Для каждого экрана генерируется фиксированная страница; идентификаторы находятся в query:
 
-### Auth store
-Auth store доступен с composable `useAuth`
-```vue
-<script setup lang="ts">
-const auth = useAuth()
+- `/works/view?id=...&kind=draft` или `kind=version`
+- `/works/new?id=...` — редактирование; без ID — создание
+- `/works/check?id=...&batchId=...`
+- `/works/results?id=...&batchId=...`
 
-// На страницах с защитой
-// При { required: true } user будет иметь NonNullable тип User, acccessToken будет иметь NonNullable тип string
-const auth = useAuth({ required: true })
-</script>
-```
+Параметры из `.env.example` задаются **до сборки**. Они включаются в клиентскую статику. В них нельзя помещать секреты.
 
-### Страница только для авторизированных
-```vue
-<script setup lang="ts">
-definePageMeta({
-  auth: true
-})
+## Реальные сервисы
 
-const auth = useAuth({ required: true })
-</script>
-```
+- `NUXT_PUBLIC_API_BASE`: адрес Go backend. Редактор использует авторизованный `/api/v1/constructor/*`: импорт, разбор, предпросмотр, черновики и версии. Вход — `/api/v1/auth/login`. Типы backend берутся из `app/types/backend.d.ts` через отдельные глобальные aliases.
+- `NUXT_PUBLIC_PREPARATION_BASE`: сервис `form-redactor-ocr`. `POST /v1/process` получает байты изображения и возвращает ФИО и подготовленный PNG в base64.
 
-### API fetch
+Нужна интеграция конструктора из backend `origin/slop`, коммит `101c1f4` (`feat: integrate test constructor, persistent gradebook and analytics`), OpenAPI 0.4.0. На момент подключения в `main` (`4a32261`) её нет. Самостоятельные `/api/import` и `/api/capabilities` относятся к локальному прототипу и фронтендом не вызываются. Контракт скопирован из указанного Git ref, `backend.d.ts` заново сгенерирован openapi-typescript 7.13.0.
 
-#### `useApiFetch` (from composables/useApiFetch.ts)
-`useApiFetch` — это кастомный `useFetch`, который используется точно так же как `useFetch`
-```ts
-const { data, resfresh } = await useApiFetch('/user/get-all')
-```
+Все `/api/v1/*` направляются в Go. Go проверяет teacher-сессию и вызывает внутренний Test Studio через `TEST_STUDIO_URL` и серверный `TEST_STUDIO_SERVICE_TOKEN`; токен в браузер не передаётся. Для разных origin настройте CORS и credential requests backend. Для API на том же origin `API_BASE` может быть пустым. Подготовка сканов по-прежнему использует `PREPARATION_BASE`.
 
-#### `$apiFetch` (from plugins/1.api.ts)
-`$apiFetch` — это кастомный `$fetch`, находящийся в nuxtApp
-```ts
-const { $apiFetch } = useNuxtApp()
-const res = await $apiFetch.raw('/user/get-all')
-```
+Редактор импортирует несколько файлов как одну работу. Рисунки сопоставляются по исходному файлу и номеру задания; неоднозначные привязки выбираются вручную при проверке импорта. Добавление файлов сохраняет уже сделанные правки и разделение заданий. Перед применением проверяется, что исходный текст и основная работа не изменились во время разбора.
 
-### Safety API fetch
+## Авторизация и хранение
 
-Для обработки исключений рекомендую возвращать с функций значение типа `MaybePromise<StoreResponse<T>>`. <br>
-`StoreResponse<T>` — это тип ответа который либо `{ ok: true, data: T }` либо `{ ok: false, message?: string, status?: number }`
+Backend использует HttpOnly cookie `teacher_session`: вход, `GET /api/v1/auth/me`, выход. Bearer token и refresh-token API не используются. HTTP-регистрации и восстановления пароля в текущем контракте нет.
 
-#### `$apiFetchSafe` (from plugins/1.api.ts)
-`$apiFetchSafe` — это асинхронная функция, вызывающая `$apiFetch` и находящийся в nuxtApp, которая возвращает `Promise<StoreResponse<T>>`
-```ts
-const { $apiFetchSafe } = useNuxtApp()
-const res = await $apiFetchSafe('/user/get-all')
-// { ok: true, data: [...] } или { ok: false, ... }
-```
+Каталог загружается с сервера: `/api/v1/constructor/drafts` и `/versions`. Черновик сохраняется с `request_id` и `expected_revision`, а публикация фиксирует его ревизию и получает неизменяемый PDF из S3. Версия без подтверждённых ответов доступна для печати, а проверка доступна только при `key_ready=true`. Идентификаторы заданий сопоставляются по `layout_task_id`, числовому `errorlab_task_id` и порядку печати; ответы и темы учитель задаёт явно. Старое локальное IndexedDB-хранилище предыдущей реализации автоматически не удаляется и не публикуется.
 
-#### `$fetchSafe` (from plugins/1.api.ts)
-`$fetchSafe` — это асинхронная функция, вызывающая `$fetch` и находящийся в nuxtApp, которая возвращает `Promise<StoreResponse<T>>`
-```ts
-const { $fetchSafe } = useNuxtApp()
-const res = await $fetchSafe('/user/get-all')
-// { ok: true, data: [...] } или { ok: false, ... }
-```
+Проверки создаются на backend. Их контекст, фото, страницы учеников, cursor и результаты сохраняются в IndexedDB `proveryator-scanner-captures`. Продолжение проверки требует того же браузера: контракт пока не содержит endpoint получения полной метаинформации batch. Очистка браузерных данных удалит локальную копию; скачивайте PDF/ZIP и результаты.
 
-#### `$apiFetchSafeWithCookies` (from plugins/1.api.ts)
-`$apiFetchSafeWithCookies` — это асинхронная функция, вызывающая `$apiFetch` и находящийся в nuxtApp, которая возвращает `Promise<StoreResponse<T>>` и прокидывает cookies на клиент если вызывается с сервера. Используйте его там, где `useRequestEvent` точно вернёт `H3Event` на сервере. Если его нет, функция ничего не прокинет. 
-```ts
-const { $apiFetchSafeWithCookies } = useNuxtApp()
-const event = useRequestEvent()
-const { data, refresh } = await useAsyncData(
-  () => $apiFetchSafeWithCookies(event, '/cookie-route')
-)
-// { ok: true, data: [...] } или { ok: false, ... }
-```
+## Сканер
 
-#### `$fetchSafeWithCookies` (from plugins/1.api.ts)
-`$fetchSafeWithCookies` — это асинхронная функция, вызывающая `$fetch` и находящийся в nuxtApp, которая возвращает `Promise<StoreResponse<T>>` и прокидывает cookies на клиент если вызывается с сервера. Используйте его там, где `useRequestEvent` точно вернёт `H3Event` на сервере. Если его нет, функция ничего не прокинет.
-```ts
-const { $fetchSafeWithCookies } = useNuxtApp()
-const event = useRequestEvent()
-const { data, refresh } = await useAsyncData(
-  () => $fetchSafeWithCookies(event, '/cookie-route')
-)
-// { ok: true, data: [...] } или { ok: false, ... }
-```
+`app/scanner/vision` и `ScanController` перенесены из `subfrontends/scanner` без изменения распознавания, геометрии, порогов качества и физического цикла листа. Предпросмотр сохраняет contain, зеркалирование и координаты обводки; на сервер идёт канонически ориентированный кадр.
 
-### Рекомендуемый вид store
-```ts
-// path: ~/composables/useUser.ts
-export const useUser = () => {
-  const { $apiFetchSafe } = useNuxtApp()
+Каждый полный скан сначала записывается, затем сразу попадает в независимую очередь (до трёх одновременных отправок). Звук означает завершение захвата и начало передачи. Пауза камеры не останавливает передачу ранее захваченных листов. Завершение приёма ждёт все доставки и не закрывает batch с неотправленными кадрами. Повторы сохраняют `capture_id`, `page_id` и Idempotency-Key.
 
-  async function getMyName() {
-    return await $apiFetchSafe<string>('/user/my-name', { 
-      method: 'GET',
-    })
-  }
+Для одностраничной работы каждый захват получает отдельный student ID; для многостраничной — связь определяется по точному ФИО и ещё не полученному номеру листа. При неоднозначности или пустом ФИО кадр остаётся для явного выбора/исправления перед отправкой. Сервис может ошибаться в ФИО; метка необходимости проверки сохраняется.
 
-  return {
-    getMyName,
-  }
-}
-```
+Результаты сопоставляются по task ID. Cursor и данные фиксируются до ACK. ACK доступен только после полного завершения, а ученики без листов требуют отдельного подтверждения. ACK разрешает backend очистить временные данные; фото и результаты в браузере автоматически не удаляются.
 
-## License
-
-Все файлы шаблона (репозитория), доступного по адресу  
-<https://github.com/yegorweb/clean-nuxt-template>,  
-распространяются по лицензии **MIT** в соответствии с [файлом LICENSE](https://github.com/yegorweb/clean-nuxt-template/blob/master/LICENSE), хранящимся в корне этого репозитория.
-
-Вы можете использовать этот шаблон как основу для своих проектов.  
-Лицензия будущего проекта определяется **вами**: вы вправе
-оставить MIT, выбрать другую лицензию или вовсе
-распространять проект без лицензии.
+Тесты используют синтетические HTTP ответы и реальный reference raster; производственный клиент заглушек не содержит. Тесты не подтверждают работу конкретной камеры и освещения.
