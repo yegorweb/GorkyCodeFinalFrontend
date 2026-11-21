@@ -12,6 +12,13 @@ const { devices, selectedDeviceId, loading: cameraLoading } = camera
 const sound = useCaptureSound()
 const starting = ref(false)
 const finishing = ref(false)
+const cameraChosen = ref(false)
+const hasStarted = ref(false)
+const defaultCamera = '__default_camera__'
+const cameraOptions = computed(() => devices.value.length
+  ? devices.value.map((device, index) => ({ title: device.label || `Камера ${index + 1}`, value: device.deviceId || defaultCamera }))
+  : [{ title: 'Камера по умолчанию', value: defaultCamera }])
+const cameraSelection = computed(() => cameraChosen.value ? selectedDeviceId.value || defaultCamera : null)
 const scanner = useScanner(camera, {
   settings: () => ({ mode: 'local', endpoint: '', maxItems: 10, maxBytes: 40 * 1024 * 1024 }),
   captureContext: () => ({ ownerId: auth.user.value?.id, scanSessionId: session.id.value }),
@@ -19,28 +26,37 @@ const scanner = useScanner(camera, {
   onCapture: record => { sound.play(); void session.enqueue(record).catch(cause => { session.error.value = generateErrorMessage(handleApiError(cause)) }) },
 })
 const { running, busy } = scanner
+const canStart = computed(() => cameraChosen.value && !running.value && !busy.value && !starting.value && !finishing.value && !cameraLoading.value && !loading.value)
+const canFinish = computed(() => cameraChosen.value && hasStarted.value && !busy.value && !starting.value && !finishing.value && !cameraLoading.value && !loading.value)
 const uploaded = computed(() => captures.value.filter(record => record.submissionStatus === 'ACCEPTED').length)
 const failed = computed(() => captures.value.filter(record => record.submissionStatus === 'FAILED').length)
 const shownError = computed(() => session.error.value || scanner.error.value || camera.error.value)
 const error = computed({ get: () => shownError.value, set: () => { session.error.value = undefined; scanner.clearError(); camera.error.value = '' } })
 async function start() {
+  if (!canStart.value) return
   starting.value = true
   void sound.arm()
-  try { await session.ready; await session.resume(); await scanner.start() }
+  try { await session.ready; await session.resume(); await scanner.start(); if (running.value) hasStarted.value = true }
   finally { starting.value = false }
 }
 async function finish() {
-  if (finishing.value) return
+  if (!canFinish.value) return
   scanner.pause(); finishing.value = true
   try { if (await session.finish()) { scanner.stop(); await navigateTo({ path: '/works/results', query: { scanId: session.id.value } }) } }
   finally { finishing.value = false }
 }
-async function changeCamera(id: string) {
+async function changeCamera(value: string | null) {
+  if (!value) { cameraChosen.value = false; scanner.pause(); return }
+  const id = value === defaultCamera ? '' : value
+  cameraChosen.value = true
   const resume = running.value
   scanner.pause()
   await camera.setDeviceId(id)
   if (resume && camera.stream.value) await scanner.start()
 }
+watch(devices, found => {
+  if (selectedDeviceId.value && !found.some(device => device.deviceId === selectedDeviceId.value)) cameraChosen.value = false
+})
 watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
 </script>
 
@@ -48,10 +64,10 @@ watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
   <main><v-container class="check-container">
     <BackButton /><h1>Проверка работ</h1>
     <ErrorMessage v-if="shownError" v-model="error" role="alert" class="mb-4" />
-    <v-select v-if="devices.length > 1" placeholder="Камера" :model-value="selectedDeviceId" :items="devices.map((device, index) => ({ title: device.label || `Камера ${index + 1}`, value: device.deviceId }))" label="Камера" variant="outlined" density="compact" hide-details class="camera-select" :disabled="cameraLoading || finishing" @update:model-value="changeCamera" />
+    <v-select placeholder="Камера" :model-value="cameraSelection" :items="cameraOptions" label="Камера" variant="outlined" density="compact" hide-details class="camera-select" :disabled="cameraLoading || starting || finishing" @update:model-value="changeCamera" />
     <div class="scan-actions">
-      <v-btn color="primary" :prepend-icon="mdiPlay" :loading="starting || cameraLoading" :disabled="running || busy || finishing || loading" @click="start">{{ scanner.state.value === 'paused' ? 'Продолжить' : 'Старт' }}</v-btn>
-      <v-btn variant="outlined" :prepend-icon="mdiStop" :loading="finishing" :disabled="busy || starting || loading" @click="finish">Завершить</v-btn>
+      <v-btn color="primary" :prepend-icon="mdiPlay" :loading="starting || cameraLoading" :disabled="!canStart" @click="start">{{ scanner.state.value === 'paused' ? 'Продолжить' : 'Старт' }}</v-btn>
+      <v-btn variant="outlined" :prepend-icon="mdiStop" :loading="finishing" :disabled="!canFinish" @click="finish">Завершить</v-btn>
     </div>
     <p class="upload-status" aria-live="polite">Листов: {{ captures.length }} · Загружено: {{ uploaded }} · Отправляется: {{ pending }}<span v-if="failed"> · Не загружено: {{ failed }}</span></p>
     <ScannerCameraView :camera="camera" :scanner="scanner" :mirror="false" />

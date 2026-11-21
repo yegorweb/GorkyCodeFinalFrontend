@@ -11,6 +11,7 @@ const markersCount = computed(() => analysis.value?.markers.length || 0)
 </script>
 <template>
   <section class="camera-panel">
+    <div class="capture-status" aria-live="polite">{{ qrIssue || message }}</div>
     <div class="video-stage" :class="{ 'has-image': !!stream }">
       <div class="preview-image-layer" :class="{ mirrored: mirror }">
         <video ref="videoRef" autoplay playsinline muted />
@@ -24,7 +25,6 @@ const markersCount = computed(() => analysis.value?.markers.length || 0)
       <div v-if="stream && state === 'wait-clear'" class="capture-toast"><v-icon :icon="mdiCheck" size="18" /><span>Страница сохранена. Уберите лист</span></div>
       <div v-if="stream && state === 'paused'" class="pause-shade"><v-icon :icon="mdiPause" /><span>Сканирование на паузе</span></div>
     </div>
-    <div class="capture-status" aria-live="polite">{{ qrIssue || message }}</div>
   </section>
 </template>
 <style scoped>
@@ -46,7 +46,7 @@ const markersCount = computed(() => analysis.value?.markers.length || 0)
 .empty-preview{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
 .empty-preview h3 { margin:16px 0 10px; font-size:18px; font-weight:500; }
 .empty-preview p { font-size:13px; line-height:1.6; color:#8fa294; }
-.capture-status { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 21px; border-top:1px solid var(--border); font-size:13px; }
+.capture-status { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 21px; border-bottom:1px solid var(--border); font-size:13px; }
 .capture-status > span { font-size:11px; color:#8fa294; }
 @media(min-width:1600px){.video-stage{min-height:440px}}
 @media(max-width:1100px){.video-stage{min-height:320px}}
