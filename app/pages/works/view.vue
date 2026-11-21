@@ -26,7 +26,7 @@ onMounted(async () => {
 </script>
 <template>
   <main><v-container class="work-container">
-    <BackButton /><h1>{{ work?.title || 'Работа' }}</h1>
+    <BackButton /><h1 class="back-page-title">{{ work?.title || 'Работа' }}</h1>
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
     <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-4" />
     <template v-if="work">
@@ -47,7 +47,7 @@ onMounted(async () => {
 </template>
 <style scoped>
 .work-container { max-width: 1136px; padding-block: 16px 48px; }
-h1 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 500; margin-block: 16px 24px; }
+h1 { margin-bottom: 24px; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
 .new-work-button { letter-spacing: normal; text-transform: none; }
 .task-row { max-width: 820px; padding-block: 20px; border-bottom: 1px solid rgb(var(--v-theme-border)); }
