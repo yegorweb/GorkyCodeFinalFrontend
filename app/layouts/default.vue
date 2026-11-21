@@ -100,7 +100,7 @@ async function logout() {
         :append-icon="mdiArrowRightBottom"
         class="header-cta"
       >
-        Освободиться от проверок
+        Перейти к работе
       </v-btn>
     </v-container>
 
