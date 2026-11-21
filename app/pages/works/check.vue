@@ -61,7 +61,7 @@ watch(captures, () => { void scanner.refreshRecords().catch(() => {}) })
 </template>
 <style scoped>
 .check-container { max-width: 1136px; padding-block: 16px 48px; }
-h1 { margin: 16px 0 24px; font-size: clamp(24px, 2.4vw, 32px); font-weight: 500; }
+h1 { margin-bottom: 24px; }
 .camera-select { max-width: 400px; margin-bottom: 16px; }
 .scan-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
 .upload-status { font-size: 14px; line-height: 1.7; margin-bottom: 16px; }
