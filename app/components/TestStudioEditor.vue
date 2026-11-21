@@ -3,9 +3,10 @@ import { mdiFileDocumentOutline, mdiDeleteOutline } from '@mdi/js'
 import { reviewedStudioTasks } from '~/utils/studio-review'
 const props = defineProps<{ workId?: string }>()
 const studio = useTestStudio({ loadExamples: false, estimate: false })
-const { exam, busy, error, jobs } = studio
+const { exam, error, jobs } = studio
 const works = useWorks()
 const file = ref<File | null>(null)
+const generatedFile = shallowRef<File | null>(null)
 const uploading = ref(false)
 const saving = ref(false)
 const loading = ref(!!props.workId)
@@ -14,6 +15,10 @@ const currentDraft = ref<Work>()
 const draftId = props.workId ?? crypto.randomUUID()
 const figures = ref<StudioReviewFigure[]>([])
 const mathLoading = computed(() => jobs.value.some(job => ['queued', 'running'].includes(job.status)))
+const uploadBusy = computed(() => uploading.value || mathLoading.value)
+const canUpload = computed(() => !!exam.value.title.trim() && !!file.value)
+const showUpload = computed(() => uploadBusy.value || !generatedFile.value || (!!file.value && file.value !== generatedFile.value))
+const topicError = computed(() => submitted.value && !exam.value.title.trim() ? 'Введите тему' : '')
 let savedSnapshot = ''
 let saveAttempt: { fingerprint: string; id: string } | undefined
 let publishAttempt: { revision: number; id: string } | undefined
@@ -21,7 +26,7 @@ if (!props.workId) { exam.value.title = ''; exam.value.subject = 'Другое' 
 
 async function upload() {
   const selected = file.value
-  if (!selected || uploading.value || saving.value || loading.value || mathLoading.value) return
+  if (!selected || !canUpload.value || uploading.value || saving.value || loading.value || mathLoading.value) return
   uploading.value = true
   error.value = undefined
   try {
@@ -34,6 +39,7 @@ async function upload() {
     validateStudioExam({ ...next, title: next.title.trim() || 'Новая работа' })
     exam.value = next; studio.review.value = undefined; studio.reviewOpen.value = false
     figures.value = importedFigures
+    generatedFile.value = selected
     submitted.value = false
   } catch (cause) { error.value = generateErrorMessage(handleApiError(cause)) }
   finally { uploading.value = false }
@@ -86,22 +92,19 @@ onMounted(async () => {
 
 <template>
   <v-form @submit.prevent="save" class="key-editor">
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-5" />
-    <template v-else>
-      <v-text-field v-model="exam.title" label="Тема" variant="outlined" maxlength="180" :disabled="saving || uploading" :error-messages="submitted && !exam.title.trim() ? 'Введите тему' : ''" />
-      <v-file-input v-model="file" label="Файл с заданиями" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,.txt,.docx" prepend-icon="" :prepend-inner-icon="mdiFileDocumentOutline" variant="outlined" :loading="uploading" :disabled="saving || uploading || mathLoading" />
-      <v-btn type="button" color="primary" :loading="uploading" :disabled="!file || saving || mathLoading" class="mb-4" @click="upload()">Отправить</v-btn>
-      <p v-if="uploading || mathLoading" class="progress-text" role="status">Распознаём задания…</p>
-      <v-progress-linear v-if="uploading || mathLoading" indeterminate color="primary" class="mb-5" />
+    <template v-if="!loading">
+      <v-text-field v-model="exam.title" label="Тема" variant="outlined" maxlength="180" :disabled="saving || uploadBusy" :error-messages="topicError" />
+      <v-file-input v-model="file" label="Файл с заданиями" accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.tif,.tiff,.txt,.docx" prepend-icon="" :prepend-inner-icon="mdiFileDocumentOutline" variant="outlined" :disabled="saving || uploadBusy" :class="{ 'mt-3': !!topicError }" />
+      <v-btn v-if="showUpload" type="button" color="primary" :loading="uploadBusy" :disabled="!canUpload || saving || mathLoading" class="mb-4" @click="upload()">Отправить</v-btn>
       <ErrorMessage v-if="error" v-model="error" role="alert" class="mb-5" />
       <template v-if="exam.tasks.length">
         <p v-if="exam.instructions" class="instructions">{{ exam.instructions }}</p>
         <div v-for="(task, index) in exam.tasks" :key="task.id" class="task-row">
           <div class="task-heading"><h2>Задание {{ index + 1 }}</h2><v-btn :icon="mdiDeleteOutline" variant="text" size="small" :disabled="saving" aria-label="Удалить задание" @click="removeTask(index)" /></div>
-          <v-textarea v-model="task.prompt" label="Условие" variant="outlined" rows="3" auto-grow :disabled="saving || uploading" maxlength="20000" hide-details="auto" />
+          <v-textarea v-model="task.prompt" label="Условие" variant="outlined" rows="3" auto-grow :disabled="saving || uploadBusy" maxlength="20000" hide-details="auto" />
           <ol v-if="task.options.length" class="task-options"><li v-for="(option, optionIndex) in task.options" :key="optionIndex">{{ option }}</li></ol>
           <v-img v-for="image in task.images" :key="image.id" :src="`data:image/png;base64,${image.data_base64}`" :alt="image.caption" max-height="160" contain class="mt-3" />
-          <v-text-field v-model="task.answer" label="Ответ" variant="outlined" maxlength="1500" class="mt-3" :disabled="saving || uploading" :error-messages="submitted && !task.answer?.trim() ? 'Введите ответ' : ''" hide-details="auto" />
+          <v-text-field v-model="task.answer" label="Ответ" variant="outlined" maxlength="1500" class="mt-3" :disabled="saving || uploadBusy" :error-messages="submitted && !task.answer?.trim() ? 'Введите ответ' : ''" hide-details="auto" />
         </div>
         <div v-for="figure in figures.filter(figure => !figure.taskId)" :key="figure.id" class="imported-figure">
           <v-img :src="`data:image/png;base64,${figure.data_base64}`" height="100" width="160" contain />
@@ -120,7 +123,6 @@ onMounted(async () => {
 .task-heading h2 { font-size: clamp(18px, 2vw, 22px); font-weight: 500; }
 .instructions { white-space: pre-wrap; line-height: 1.6; margin-block: 16px; }
 .task-options { padding-left: 24px; margin-top: 12px; }
-.progress-text { color: rgb(var(--v-theme-muted)); font-size: 14px; margin-bottom: 12px; }
 .imported-figure { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
 .imported-figure > :last-child { flex: 1; min-width: 220px; }
 </style>
