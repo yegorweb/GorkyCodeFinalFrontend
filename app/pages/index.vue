@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
       </section>
 
       <section class="home-section benefits-section" aria-labelledby="benefits-title">
-        <h2 id="benefits-title" class="section-title" data-reveal>Зачем мне это?</h2>
+        <h2 id="benefits-title" class="section-title" data-reveal>Преимущества сервиса</h2>
         <v-row class="information-row">
           <v-col
             v-for="(benefit, index) in benefits"
@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
       </section>
 
       <section class="home-section faq-section" aria-labelledby="faq-title">
-        <h2 id="faq-title" class="section-title" data-reveal>FAQ</h2>
+        <h2 id="faq-title" class="section-title" data-reveal>Вопросы и ответы</h2>
         <v-expansion-panels class="faq-panels" variant="accordion" data-reveal>
           <v-expansion-panel v-for="item in questions" :key="item.question" bg-color="background">
             <v-expansion-panel-title :expand-icon="mdiChevronDown" :collapse-icon="mdiChevronUp">
